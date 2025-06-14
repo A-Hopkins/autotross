@@ -1,0 +1,3 @@
+[submodule "external/protocore"]
+	path = external/protocore
+	url = git@github.com:A-Hopkins/protocore.git

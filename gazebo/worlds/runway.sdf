@@ -26,6 +26,18 @@
     <plugin filename="gz-sim-navsat-system"
       name="gz::sim::systems::NavSat">
     </plugin>
+    <plugin
+      filename="gz-sim-altimeter-system"
+      name="gz::sim::systems::Altimeter">
+    </plugin>
+    <plugin
+      filename="gz-sim-magnetometer-system"
+      name="gz::sim::systems::Magnetometer">
+    </plugin>
+    <plugin
+      filename="gz-sim-air-speed-system"
+      name="gz::sim::systems::AirSpeed">
+    </plugin>
 
     <scene>
       <ambient>1.0 1.0 1.0</ambient>
@@ -116,10 +128,6 @@
       <pose degrees="true">-29 545 0 0 0 363</pose>
     </include>
 
-    <!-- <include>
-      <uri>model://cessna</uri>
-      <pose degrees="true">0 0 0.2 0 0 90</pose>
-    </include> -->
     <include>
       <uri>model://mini_talon_vtail</uri>
       <pose degrees="true">0 0 0.2 0 0 90</pose>

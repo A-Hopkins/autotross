@@ -312,14 +312,66 @@
       </visual> -->
 
       <!-- Sensors. -->
-      <sensor name="imu_sensor" type="imu">
-        <pose degrees="true">0 0 0 180 0 0</pose>
-        <always_on>1</always_on>
-        <update_rate>1000.0</update_rate>
+      <!-- IMU (Main) -->
+      <sensor name="imu_main" type="imu">
+        <always_on>true</always_on>
+        <update_rate>500.0</update_rate>
+        <topic>sensors/imu_main</topic>
+        <imu>
+          <angular_velocity>true</angular_velocity>
+          <linear_acceleration>true</linear_acceleration>
+        </imu>
       </sensor>
-      <sensor name="navsat_sensor" type="navsat">
-        <always_on>1</always_on>
-        <update_rate>1</update_rate>
+
+      <!-- IMU (Backup) -->
+      <sensor name="imu_backup" type="imu">
+        <always_on>true</always_on>
+        <update_rate>500.0</update_rate>
+        <topic>sensors/imu_backup</topic>
+        <imu>
+          <angular_velocity>true</angular_velocity>
+          <linear_acceleration>true</linear_acceleration>
+        </imu>
+      </sensor>
+
+      <!-- GPS -->
+      <sensor name="gps" type="navsat">
+        <always_on>true</always_on>
+        <update_rate>16.0</update_rate>
+        <topic>sensors/navsat</topic>
+        <navsat>
+          <position_sensing>true</position_sensing>
+          <velocity_sensing>true</velocity_sensing>
+        </navsat>
+      </sensor>
+
+      <!-- Altimeter -->
+      <sensor name="altimeter" type="altimeter">
+        <always_on>true</always_on>
+        <update_rate>10.0</update_rate>
+        <topic>sensors/altimeter</topic>
+        <altimeter>
+        </altimeter>
+      </sensor>
+
+      <!-- Magnetometer -->
+      <sensor name="magnetometer" type="magnetometer">
+        <always_on>true</always_on>
+        <update_rate>10.0</update_rate>
+        <topic>sensors/magnetometer</topic>
+        <magnetometer>
+        </magnetometer>
+      </sensor>
+
+      <!-- Airspeed Sensor -->
+      <sensor name="air_speed" type="air_speed">
+        <always_on>true</always_on>
+        <update_rate>25.0</update_rate>
+        <topic>sensors/airspeed</topic>
+        <air_speed>
+         <pressure>
+         </pressure>
+        </air_speed>
       </sensor>
     </link>
 
@@ -711,10 +763,10 @@
       <child>motor_link</child>
       <axis>
         <xyz>0 0 1</xyz>
-        <limit>
+        <!-- <limit>
           <lower>-1.0e-16</lower>
           <upper>1.0e+16</upper>
-        </limit>
+        </limit> -->
         <dynamics>
           <damping>0.004</damping>
         </dynamics>
@@ -725,6 +777,23 @@
     <plugin filename="gz-sim-joint-state-publisher-system"
       name="gz::sim::systems::JointStatePublisher">
     </plugin>
+
+    <!-- Putting this battery here for reminder, but will need probably custom plugin -->
+    <!-- to handle per joint drain. Disabling until we can fly... Don't need one more thing to worry about -->
+    <!-- <plugin filename="gz-sim-linearbatteryplugin-system"
+        name="gz::sim::systems::LinearBatteryPlugin">
+      <battery_name>main_battery</battery_name>
+      <voltage>16.8</voltage> <!-- 4S LiPo nominal -->
+      <open_circuit_voltage_constant_coef>16.8</open_circuit_voltage_constant_coef>
+      <open_circuit_voltage_linear_coef>-3.0</open_circuit_voltage_linear_coef>
+      <initial_charge>10.0</initial_charge> <!-- Ah -->
+      <capacity>10.0</capacity> <!-- Ah -->
+      <resistance>0.1</resistance> <!-- Ohms -->
+      <smooth_current_tau>2.0</smooth_current_tau>
+      <enable_recharge>false</enable_recharge>
+      <start_on_motion>true</start_on_motion>
+      <power_load>10.0</power_load> <!-- constant power draw in W -->
+    </plugin> -->
 
     <!-- Positive is up. -->
     <plugin
@@ -788,6 +857,14 @@
       <i_min>-1</i_min>
       <cmd_max>5</cmd_max>
       <cmd_min>-5</cmd_min>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-joint-controller-system"
+      name="gz::sim::systems::JointController">
+      <joint_name>motor_joint</joint_name>
+      <topic>/motor_joint/cmd_vel</topic>
+      <initial_velocity>0.0</initial_velocity>
     </plugin>
 
     <!-- motor_joint cw -->

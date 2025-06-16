@@ -62,7 +62,7 @@ To plan and track flight paths that satisfy mission directives. Converts global 
 **Inputs:**
 - High-rate inertial data (acceleration, angular velocity)
 - Global position and velocity
-- Sltitude from pressure
+- Altitude from pressure
 - Heading reference
 - Indicated airspeed
 

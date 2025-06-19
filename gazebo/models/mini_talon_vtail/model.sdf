@@ -315,22 +315,18 @@
       <!-- IMU (Main) -->
       <sensor name="imu_main" type="imu">
         <always_on>true</always_on>
-        <update_rate>500.0</update_rate>
+        <update_rate>1000.0</update_rate>
         <topic>sensors/imu_main</topic>
         <imu>
-          <angular_velocity>true</angular_velocity>
-          <linear_acceleration>true</linear_acceleration>
         </imu>
       </sensor>
 
       <!-- IMU (Backup) -->
       <sensor name="imu_backup" type="imu">
         <always_on>true</always_on>
-        <update_rate>500.0</update_rate>
+        <update_rate>1000.0</update_rate>
         <topic>sensors/imu_backup</topic>
         <imu>
-          <angular_velocity>true</angular_velocity>
-          <linear_acceleration>true</linear_acceleration>
         </imu>
       </sensor>
 
@@ -352,15 +348,6 @@
         <topic>sensors/altimeter</topic>
         <altimeter>
         </altimeter>
-      </sensor>
-
-      <!-- Magnetometer -->
-      <sensor name="magnetometer" type="magnetometer">
-        <always_on>true</always_on>
-        <update_rate>10.0</update_rate>
-        <topic>sensors/magnetometer</topic>
-        <magnetometer>
-        </magnetometer>
       </sensor>
 
       <!-- Airspeed Sensor -->

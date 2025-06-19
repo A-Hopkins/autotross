@@ -25,7 +25,7 @@ AutoTross is designed around modular **Computer Software Components (CSCs)**, wh
 
 Each CSC implements input and output sanity checks to ensure safety at the CSC level
 
-### 🚀 Mission Manager CSC
+### Mission Manager CSC
 
 **Inputs:**
 - Current navigation progress and status
@@ -42,7 +42,7 @@ To coordinate and execute the mission lifecycle by interpreting navigation statu
 
 ---
 
-### 🧭 Navigation CSC
+### Navigation CSC
 
 **Inputs:**
 - High-level goal to navigate to
@@ -57,13 +57,12 @@ To plan and track flight paths that satisfy mission directives. Converts global 
 
 ---
 
-### 🧠 State Estimation CSC
+### State Estimation CSC
 
 **Inputs:**
-- High-rate inertial data (acceleration, angular velocity)
+- High-rate 9 DOF IMU
 - Global position and velocity
 - Altitude from pressure
-- Heading reference
 - Indicated airspeed
 
 **Outputs:**
@@ -74,7 +73,7 @@ To maintain a real-time, drift-corrected estimate of the UAV's full 6-DOF state 
 
 ---
 
-### 🎯 Flight Controller CSC
+### Flight Controller CSC
 
 **Inputs:**
 - Position, velocity, or attitude goals
@@ -88,7 +87,7 @@ To convert guidance setpoints into low-level actuator commands using cascaded co
 
 ---
 
-### 🛑 Safety Monitor CSC
+### Safety Monitor CSC
 
 **Inputs:**
 - All the CSC inputs to monitor
@@ -102,7 +101,7 @@ To supervise system-wide safety conditions, issue global overrides, and act as a
 
 ---
 
-### 🔋 Battery Management CSC
+### Battery Management CSC
 
 **Inputs:**
 - Raw voltage reading

@@ -31,10 +31,6 @@
       name="gz::sim::systems::Altimeter">
     </plugin>
     <plugin
-      filename="gz-sim-magnetometer-system"
-      name="gz::sim::systems::Magnetometer">
-    </plugin>
-    <plugin
       filename="gz-sim-air-speed-system"
       name="gz::sim::systems::AirSpeed">
     </plugin>

@@ -1,3 +1,6 @@
 [submodule "external/protocore"]
 	path = external/protocore
 	url = git@github.com:A-Hopkins/protocore.git
+[submodule "external/kfplusplus"]
+	path = external/kfplusplus
+	url = git@github.com:A-Hopkins/kfplusplus.git

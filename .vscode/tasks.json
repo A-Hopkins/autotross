@@ -1,0 +1,62 @@
+{
+  "tasks": [
+    {
+      "label": "CMake Debug Build",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build",
+        "--config",
+        "Debug",
+        "--target",
+        "autotross",
+        "-j",
+        "26"
+      ],
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Launch Gazebo GUI",
+      "type": "shell",
+      "command": "gz",
+      "args": [
+        "sim",
+        "${workspaceFolder}/gazebo/worlds/runway.sdf",
+        "-r",
+        "-v",
+      ],
+      "options": {
+        "env": {
+          "GZ_SIM_RESOURCE_PATH": "${workspaceFolder}/gazebo/models"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Launch Gazebo Headless",
+      "type": "shell",
+      "command": "gz",
+      "args": [
+        "sim",
+        "${workspaceFolder}/gazebo/worlds/runway.sdf",
+        "-r",
+        "--headless-rendering",
+        "-s",
+        "-v",
+      ],
+      "options": {
+        "env": {
+          "GZ_SIM_RESOURCE_PATH": "${workspaceFolder}/gazebo/models",
+          "DISPLAY": ""
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+  ],
+  "version": "2.0.0"
+}

@@ -7,6 +7,7 @@
  */
 
 #pragma once
+#include <array>
 #include "imu.h"
 #include "msg/imu_msg.h"
 #include "protocore/include/task/task.h"
@@ -44,7 +45,12 @@ protected:
    * @param name The name assigned to this task for identification and logging. Defaults to
    * "IMUTask".
    */
-  IMUTask(const std::string& name = "IMUTask") : task::Task(name) {}
+  IMUTask(const std::string& name = "IMUTask")
+    : task::Task(name),
+      imu_sensors{{IMU(1), IMU(2), IMU(3)}}  // Initialize three IMU sensors with unique IDs.
+  {
+    set_periodic_task_interval(std::chrono::milliseconds(PROCESSING_INTERVAL));
+  }
 
   /**
    * @brief Processes incoming messages directed to this task.
@@ -55,6 +61,14 @@ protected:
    * @param msg The message received by the task.
    */
   void process_message(const msg::Msg& msg) override;
+
+  /**
+   * @brief Periodic task processing method.
+   *
+   * This method is called periodically based on the set interval. It processes IMU data
+   * if the task is in the RUNNING state.
+   */
+  void periodic_task_process() override;
 
   /**
    * @brief Transitions the task to a new operational state.
@@ -75,17 +89,27 @@ protected:
   void on_initialize() override { safe_subscribe(msg::Type::StateMsg); }
 
 private:
-  IMU imu_sensor; ///< Instance of the IMU sensor interface used for data retrieval and processing.
-                  ///< The specific implementation (hardware or simulation) is determined at compile
-                  ///< time.
+  static constexpr std::size_t IMU_COUNT = 3; ///< Number of IMU sensors managed by this task.
+  static constexpr std::chrono::milliseconds PROCESSING_INTERVAL = std::chrono::milliseconds(1); ///< Interval for processing IMU data.
+  static constexpr std::chrono::milliseconds STALE_THRESHOLD = IMU_COUNT * PROCESSING_INTERVAL; ///< Threshold to consider IMU data as stale.
+  std::array<IMU, IMU_COUNT> imu_sensors; ///< Array of IMU sensor instances for data retrieval and processing.
 
   /**
-   * @brief Processes incoming IMU sensor data received from the IMU sensor instance.
+   * @brief Processes IMU data collected by IMU sensor(s).
    *
-   * This method is typically called by the callback registered with the IMU sensor.
-   * If the task is in the `RUNNING` state, it logs the reception of data and
-   * publishes the received IMU data as a `IMUDataMsg` for other tasks to consume.
-   * @param data An `IMUDataMsg` object containing the latest sensor readings.
+   * This method is called periodically to handle the latest IMU data. It reads
+   * the current IMU data and executes the voting algorithm before publishing the data.
    */
-  void process_imu_data(const msg::IMUDataMsg& data);
+  void process_imu_data();
+
+  /**
+   * @brief Votes on the validity of IMU data from multiple sensors.
+   *
+   * This method evaluates the IMU data from all sensors and determines which sensors
+   * have valid data based on a voting mechanism. It returns an array indicating the validity
+   * of each IMU's data.
+   * @param imu_data An array containing the latest IMU data from each sensor.
+   * @return An array of booleans indicating whether each IMU's data is valid.
+   */
+  std::array<bool, IMU_COUNT> vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data);
 };

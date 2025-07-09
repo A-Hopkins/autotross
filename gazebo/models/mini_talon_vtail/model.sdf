@@ -313,19 +313,28 @@
 
       <!-- Sensors. -->
       <!-- IMU (Main) -->
-      <sensor name="imu_main" type="imu">
+      <sensor name="imu_1" type="imu">
         <always_on>false</always_on>
         <update_rate>1000.0</update_rate>
-        <topic>sensors/imu_main</topic>
+        <topic>sensors/imu_1</topic>
         <imu>
         </imu>
       </sensor>
 
       <!-- IMU (Backup) -->
-      <sensor name="imu_backup" type="imu">
+      <sensor name="imu_2" type="imu">
         <always_on>false</always_on>
         <update_rate>1000.0</update_rate>
-        <topic>sensors/imu_backup</topic>
+        <topic>sensors/imu_2</topic>
+        <imu>
+        </imu>
+      </sensor>
+
+      <!-- IMU (Tertiary) -->
+      <sensor name="imu_3" type="imu">
+        <always_on>false</always_on>
+        <update_rate>1000.0</update_rate>
+        <topic>sensors/imu_3</topic>
         <imu>
         </imu>
       </sensor>

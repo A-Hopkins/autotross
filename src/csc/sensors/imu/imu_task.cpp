@@ -10,6 +10,7 @@
 #include "csc/sensors/imu/imu.h"
 #include "protocore/include/logger.h"
 
+#include <iostream>
 /**
  * @brief Destructor for the IMUTask class.
  *
@@ -17,7 +18,10 @@
  */
 IMUTask::~IMUTask()
 {
-  imu_sensor.stop();
+  for (auto& imu_sensor : imu_sensors)
+  {
+    imu_sensor.stop(); // Stop all IMU sensors to ensure no data is being processed when the task is destroyed.
+  }
 }
 
 /**
@@ -53,6 +57,20 @@ void IMUTask::process_message(const msg::Msg& msg)
 }
 
 /**
+ * @brief Periodic task processing method.
+ *
+ * This method is called periodically based on the set interval. It processes IMU data
+ * if the task is in the RUNNING state.
+ */
+void IMUTask::periodic_task_process()
+{
+  // This method is called periodically based on the set interval.
+  // It processes IMU data if the task is in the RUNNING state.
+  std::cout<< "IMUTask::periodic_task_process() called" << std::endl;
+  process_imu_data();
+}
+
+/**
  * @brief Transitions the task to a new state.
  *
  * Performs actions associated with entering the new state, such as starting or stopping
@@ -81,18 +99,27 @@ void IMUTask::transition_to_state(task::TaskState new_state)
     }
     case task::TaskState::RUNNING:
     {
-      imu_sensor.start([this](const msg::IMUDataMsg& data) { process_imu_data(data); });
+      for (auto& imu_sensor : imu_sensors)
+      {
+        imu_sensor.start(); // Start all IMU sensors to begin data collection.
+      }
       break;
     }
 
     case task::TaskState::STOPPED:
     {
-      imu_sensor.stop();
+      for (auto& imu_sensor : imu_sensors)
+      {
+        imu_sensor.stop(); // Stop all IMU sensors to ensure no data is being processed when the task is destroyed.
+      }
       break;
     }
     case task::TaskState::ERROR:
     {
-      imu_sensor.stop();
+      for (auto& imu_sensor : imu_sensors)
+      {
+        imu_sensor.stop(); // Stop all IMU sensors to ensure no data is being processed when the task is destroyed.
+      }
       break;
     }
     default:
@@ -107,17 +134,59 @@ void IMUTask::transition_to_state(task::TaskState new_state)
 }
 
 /**
- * @brief Processes IMU data received from the sensor.
+ * @brief Processes IMU data collected by IMU sensor(s).
  *
- * If the task is in the RUNNING state, it logs the reception of IMU data
- * and publishes the data as an IMUDataMsg.
- *
- * @param data The IMU data message received from the sensor.
+ * This method is called periodically to handle the latest IMU data. It reads
+ * the current IMU data and executes the voting algorithm before publishing the data.
  */
-void IMUTask::process_imu_data(const msg::IMUDataMsg& data)
+void IMUTask::process_imu_data()
 {
   if (current_state == task::TaskState::RUNNING)
   {
-    safe_publish(msg::Msg(this, data));
+    // Collect data from all IMU sensors
+    std::array<msg::IMUDataMsg, IMU_COUNT> local_imu_data;
+    for(size_t i = 0; i < IMU_COUNT; ++i)
+    {
+      local_imu_data[i] = imu_sensors[i].get_current_data();
+    }
+
+    // Vote
+    // TODO time this function
+    std::array<bool, IMU_COUNT> valid_imus = vote_valid_imus(local_imu_data);
+
+    // Publish Valid IMU data
+    for (size_t i = 0; i < IMU_COUNT; ++i)
+    {
+      if (valid_imus[i])
+      {
+        safe_publish(msg::Msg(this, local_imu_data[i]));
+      }
+      else
+      {
+        imu_sensors[i].set_status(IMU::Status::INVALID);
+        Logger::instance().log(LogLevel::ERROR, get_name(),
+                               "IMU sensor " + std::to_string(imu_sensors[i].get_id()) +
+                                " reported invalid data. Stopping sensor.");
+        // TODO possible recovery?
+        imu_sensors[i].stop();
+      }
+    }
   }
+}
+
+/**
+ * @brief Votes on the validity of IMU data from multiple sensors.
+ *
+ * This method evaluates the IMU data from all sensors and determines which sensors
+ * have valid data based on a voting mechanism. It returns an array indicating the validity
+ * of each IMU's data.
+ * @param imu_data An array containing the latest IMU data from each sensor.
+ * @return An array of booleans indicating whether each IMU's data is valid.
+ */
+std::array<bool, IMUTask::IMU_COUNT> IMUTask::vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data)
+{
+  std::array<bool, IMU_COUNT> valid_imus = {true}; // Initialize all IMUs as valid
+
+  // TODO: Implement a voting algorithm to determine the validity of IMU data
+  return valid_imus;
 }

@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "array": "cpp"
+        "array": "cpp",
+        "__config": "cpp",
+        "locale": "cpp",
+        "valarray": "cpp"
     }
 }

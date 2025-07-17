@@ -1,6 +1,7 @@
 add_executable(test_imu_task
   ${CMAKE_SOURCE_DIR}/src/csc/sensors/imu/imu_task.cpp
   test_imu_task.cpp
+  imu_stub.cpp
 )
 
 target_compile_definitions(test_imu_task PRIVATE UNIT_TESTING)

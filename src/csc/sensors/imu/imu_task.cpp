@@ -10,7 +10,6 @@
 #include "csc/sensors/imu/imu.h"
 #include "protocore/include/logger.h"
 
-#include <iostream>
 /**
  * @brief Destructor for the IMUTask class.
  *
@@ -66,7 +65,6 @@ void IMUTask::periodic_task_process()
 {
   // This method is called periodically based on the set interval.
   // It processes IMU data if the task is in the RUNNING state.
-  std::cout<< "IMUTask::periodic_task_process() called" << std::endl;
   process_imu_data();
 }
 

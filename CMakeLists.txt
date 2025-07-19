@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Define an option to build for Gazebo simulation (default is True).
 # This allows switching between simulation and hardware builds.
-option(USE_SIM "Build for Gazebo simulation" False)
+option(USE_SIM "Build for Gazebo simulation" True)
 
 # Disable building tests and examples from external projects (like protocore)
 # to reduce build time and complexity.
@@ -58,7 +58,7 @@ if(USE_SIM)
   message(STATUS "Building for Gazebo simulation")
   add_definitions(-DUSE_SIM)
   list(APPEND SOURCES
-
+      src/hal/gazebo/gazebo_imu.cpp
       )
 
   if(gz-transport13_FOUND)
@@ -93,9 +93,3 @@ endif()
 
 enable_testing()
 add_subdirectory(test)
-
-file(GLOB_RECURSE ALL_SOURCE_FILES
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp"
-  )

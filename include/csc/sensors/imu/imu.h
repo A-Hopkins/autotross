@@ -67,10 +67,7 @@ public:
    * The ID is typically used to distinguish between multiple IMU sensors in a system.
    *
    */
-  uint16_t get_id() const
-  {
-    return imu_id;
-  }
+  uint16_t get_id() const;
 
   /**
    * @brief Reads the current IMU data.
@@ -79,20 +76,14 @@ public:
    * mechanism is determined by the implementation (e.g., reading from hardware registers, fetching
    * from a simulation environment).
    */
-  msg::IMUDataMsg get_current_data() const
-  {
-    return current_imu_data;
-  }
+  msg::IMUDataMsg get_current_data() const;
 
   /**
    * @brief Gets the current IMU status.
    * 
    * This function returns the current status of the IMU sensor, indicating the validity of the data.
    */
-  Status get_status() const
-  {
-    return status;
-  }
+  Status get_status() const;
 
   /**
    * @brief Sets the IMU status.
@@ -101,10 +92,7 @@ public:
    *
    * @param new_status The new status to set for the IMU sensor.
    */
-  void set_status(Status new_status)
-  {
-    status = new_status;
-  }
+  void set_status(Status new_status);
 
 private:
   Status status; ///< Current status of the IMU sensor (e.g., UNINITIALIZED, VALID, INVALID).

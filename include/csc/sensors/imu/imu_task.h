@@ -12,6 +12,10 @@
 #include "msg/imu_msg.h"
 #include "protocore/include/task/task.h"
 
+#ifdef UNIT_TESTING
+#include <gtest/gtest_prod.h>
+#endif
+
 /**
  * @class IMUTask
  * @brief A task that manages and processes IMU sensor data.
@@ -24,6 +28,8 @@
 class IMUTask : public task::Task
 {
 public:
+  static constexpr std::size_t IMU_COUNT = 3; ///< Number of IMU sensors managed by this task.
+
   static std::shared_ptr<IMUTask> create()
   {
     auto instance = std::shared_ptr<IMUTask>(new IMUTask("IMUTask"));
@@ -89,9 +95,23 @@ protected:
   void on_initialize() override { safe_subscribe(msg::Type::StateMsg); }
 
 private:
-  static constexpr std::size_t IMU_COUNT = 3; ///< Number of IMU sensors managed by this task.
+#ifdef UNIT_TESTING
+  FRIEND_TEST(IMUTaskTest, TransitionsToRunningStartsAllSensors);
+  FRIEND_TEST(IMUTaskTest, TransitionsToStopInvalidatesAllSensors);
+  FRIEND_TEST(IMUTaskTest, VotingAllSensorsAgree);
+  FRIEND_TEST(IMUTaskTest, VotingRejectsOutlier);
+  FRIEND_TEST(IMUTaskTest, VotingAllDisagreeReturnsNone);
+  FRIEND_TEST(IMUTaskTest, VoteValidIMUsPerformance);
+  FRIEND_TEST(IMUTaskTest, SingleActiveSensorIsAlwaysValidIfClusterOfOne);
+  FRIEND_TEST(IMUTaskTest, SimulateDriftingIMU);
+  FRIEND_TEST(IMUTaskTest, CompareIMUThresholdEdge);
+#endif
   static constexpr std::chrono::milliseconds PROCESSING_INTERVAL = std::chrono::milliseconds(1); ///< Interval for processing IMU data.
   static constexpr std::chrono::milliseconds STALE_THRESHOLD = IMU_COUNT * PROCESSING_INTERVAL; ///< Threshold to consider IMU data as stale.
+  static constexpr float ANGULAR_VEL_THRESHOLD = 0.2f;  ///< Max angular velocity difference [rad/s]
+  static constexpr float LINEAR_ACCEL_THRESHOLD = 0.5f; ///< Max linear acceleration difference [m/s^2]
+  static constexpr float ORIENTATION_THRESHOLD = 0.1f;  ///< Max quaternion difference (unitless)
+
   std::array<IMU, IMU_COUNT> imu_sensors; ///< Array of IMU sensor instances for data retrieval and processing.
 
   /**
@@ -103,13 +123,49 @@ private:
   void process_imu_data();
 
   /**
-   * @brief Votes on the validity of IMU data from multiple sensors.
+   * @brief Executes cluster-based consensus voting over IMU sensor data.
    *
-   * This method evaluates the IMU data from all sensors and determines which sensors
-   * have valid data based on a voting mechanism. It returns an array indicating the validity
-   * of each IMU's data.
-   * @param imu_data An array containing the latest IMU data from each sensor.
-   * @return An array of booleans indicating whether each IMU's data is valid.
+   * Given a fixed-size array of IMU readings and a corresponding validity mask, this method
+   * identifies the largest group (cluster) of sensors whose measurements mutually agree
+   * within defined thresholds. Only sensors that belong to the largest such cluster
+   * are considered valid and marked as such in the return value.
+   *
+   * Method:
+   * - For each sensor:
+   *     - Compare it to every other VALID sensor using `compare_imu()`.
+   *     - Count how many others it agrees with (including itself).
+   * - Identify the maximum cluster size.
+   * - All sensors that are part of this max-size cluster (size >= 2) are marked VALID.
+   *
+   * @param imu_data     Array of IMUDataMsg, one per sensor (must be valid where mask[i] is true).
+   * @param active_mask  Boolean mask indicating which sensors are currently active and eligible for voting.
+   * @return std::array<bool, IMU_COUNT> where each element is true iff the corresponding IMU was included in the maximal agreement cluster.
+   *
+   * Notes:
+   * - If no agreement cluster of size >= 2 is found, all sensors are marked invalid.
+   * - This method assumes all IMUs are sampled synchronously and aligned in time.
+   * - The voting mechanism is tolerant to one outlier sensor among three (N=3).
    */
-  std::array<bool, IMU_COUNT> vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data);
+  std::array<bool, IMU_COUNT> vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data, const std::array<bool, IMU_COUNT>& active_mask);
+
+  /**
+   * @brief Compares two IMU data samples for agreement within configured thresholds.
+   *
+   * Computes the L2 norm difference between corresponding sensor quantities:
+   * - Angular velocity (rad/s)
+   * - Linear acceleration (m/s^2)
+   * - Orientation quaternion (unitless; comparison accounts for antipodal symmetry)
+   *
+   * Two IMU samples are considered to agree if all three component differences fall
+   * below their respective thresholds.
+   *
+   * Orientation difference is computed as:
+   *   min(||q_1 - q_2||, ||q_1 + q_2||)
+   * to account for quaternion sign ambiguity.
+   *
+   * @param a First IMU data sample.
+   * @param b Second IMU data sample.
+   * @return true if all vector differences are within threshold limits; false otherwise.
+   */
+  bool compare_imu(const msg::IMUDataMsg& a, const msg::IMUDataMsg& b);
 };

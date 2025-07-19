@@ -10,6 +10,10 @@
 #include "csc/sensors/imu/imu.h"
 #include "protocore/include/logger.h"
 
+#include "core/scoped_timer.h"
+
+#include <algorithm>
+
 /**
  * @brief Destructor for the IMUTask class.
  *
@@ -143,14 +147,20 @@ void IMUTask::process_imu_data()
   {
     // Collect data from all IMU sensors
     std::array<msg::IMUDataMsg, IMU_COUNT> local_imu_data;
+    std::array<bool, IMU_COUNT> local_imu_status;
+    local_imu_data.fill(msg::IMUDataMsg{});
+    local_imu_status.fill(false);
+
     for(size_t i = 0; i < IMU_COUNT; ++i)
     {
-      local_imu_data[i] = imu_sensors[i].get_current_data();
+      if (imu_sensors[i].get_status() == IMU::Status::VALID)
+      {
+        local_imu_status[i] = true;
+        local_imu_data[i] = imu_sensors[i].get_current_data();
+      }
     }
 
-    // Vote
-    // TODO time this function
-    std::array<bool, IMU_COUNT> valid_imus = vote_valid_imus(local_imu_data);
+    std::array<bool, IMU_COUNT> valid_imus = vote_valid_imus(local_imu_data, local_imu_status);
 
     // Publish Valid IMU data
     for (size_t i = 0; i < IMU_COUNT; ++i)
@@ -173,18 +183,104 @@ void IMUTask::process_imu_data()
 }
 
 /**
- * @brief Votes on the validity of IMU data from multiple sensors.
+ * @brief Executes cluster-based consensus voting over IMU sensor data.
  *
- * This method evaluates the IMU data from all sensors and determines which sensors
- * have valid data based on a voting mechanism. It returns an array indicating the validity
- * of each IMU's data.
- * @param imu_data An array containing the latest IMU data from each sensor.
- * @return An array of booleans indicating whether each IMU's data is valid.
+ * Given a fixed-size array of IMU readings and a corresponding validity mask, this method
+ * identifies the largest group (cluster) of sensors whose measurements mutually agree
+ * within defined thresholds. Only sensors that belong to the largest such cluster
+ * are considered valid and marked as such in the return value.
+ *
+ * Method:
+ * - For each sensor:
+ *     - Compare it to every other VALID sensor using `compare_imu()`.
+ *     - Count how many others it agrees with (including itself).
+ * - Identify the maximum cluster size.
+ * - All sensors that are part of this max-size cluster (size >= 2) are marked VALID.
+ *
+ * @param imu_data     Array of IMUDataMsg, one per sensor (must be valid where mask[i] is true).
+ * @param active_mask  Boolean mask indicating which sensors are currently active and eligible for voting.
+ * @return std::array<bool, IMU_COUNT> where each element is true iff the corresponding IMU was included in the maximal agreement cluster.
+ *
+ * Notes:
+ * - If no agreement cluster of size >= 2 is found, all sensors are marked invalid.
+ * - This method assumes all IMUs are sampled synchronously and aligned in time.
+ * - The voting mechanism is tolerant to one outlier sensor among three (N=3).
  */
-std::array<bool, IMUTask::IMU_COUNT> IMUTask::vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data)
+std::array<bool, IMUTask::IMU_COUNT> IMUTask::vote_valid_imus(const std::array<msg::IMUDataMsg, IMU_COUNT>& imu_data, const std::array<bool, IMU_COUNT>& active_mask)
 {
-  std::array<bool, IMU_COUNT> valid_imus = {true}; // Initialize all IMUs as valid
+  ScopedTimer timer("IMUTask::vote_valid_imus");
+  std::array<bool, IMU_COUNT> valid_imus;
+  valid_imus.fill(false);
+  
+  size_t best_cluster_size = 0;
+  std::array<size_t, IMU_COUNT> cluster_sizes{};
+  bool allow_single_sensor_valid = (std::count(active_mask.begin(), active_mask.end(), true) == 1);
 
-  // TODO: Implement a voting algorithm to determine the validity of IMU data
+  for (size_t i = 0; i < IMU_COUNT; ++i)
+  {
+    if (!active_mask[i])
+    {
+      continue;
+    }
+
+    size_t count = 1; // Start with self as a valid member of its own cluster
+    for (size_t j = 0; j < IMU_COUNT; ++j)
+    {
+      if (i == j || !active_mask[j])
+      {
+        continue;
+      }
+        
+      if (compare_imu(imu_data[i], imu_data[j]))
+      {
+        ++count;
+      }
+    }
+    cluster_sizes[i] = count;
+    if (count > best_cluster_size)
+    {
+      best_cluster_size = count;
+    }
+  }
+
+  for (size_t i = 0; i < IMU_COUNT; ++i)
+  {
+    if (cluster_sizes[i] == best_cluster_size && (best_cluster_size >= 2 || allow_single_sensor_valid))
+    {
+      valid_imus[i] = true;
+    }
+  }
+
   return valid_imus;
+}
+
+/**
+ * @brief Compares two IMU data samples for agreement within configured thresholds.
+ *
+ * Computes the L2 norm difference between corresponding sensor quantities:
+ * - Angular velocity (rad/s)
+ * - Linear acceleration (m/s^2)
+ * - Orientation quaternion (unitless; comparison accounts for antipodal symmetry)
+ *
+ * Two IMU samples are considered to agree if all three component differences fall
+ * below their respective thresholds.
+ *
+ * Orientation difference is computed as:
+ *   min(||q_1 - q_2||, ||q_1 + q_2||)
+ * to account for quaternion sign ambiguity.
+ *
+ * @param a First IMU data sample.
+ * @param b Second IMU data sample.
+ * @return true if all vector differences are within threshold limits; false otherwise.
+ */
+bool IMUTask::compare_imu(const msg::IMUDataMsg& a, const msg::IMUDataMsg& b)
+{
+
+  float ang_vel_diff = linalg::norm(a.angular_velocity - b.angular_velocity);
+  float lin_acc_diff = linalg::norm(a.linear_acceleration - b.linear_acceleration);
+  float orientation_diff = std::min(linalg::norm(a.orientation - b.orientation), linalg::norm(a.orientation + b.orientation));
+
+  return (ang_vel_diff < ANGULAR_VEL_THRESHOLD) &&
+         (lin_acc_diff < LINEAR_ACCEL_THRESHOLD) &&
+         (orientation_diff < ORIENTATION_THRESHOLD);
 }

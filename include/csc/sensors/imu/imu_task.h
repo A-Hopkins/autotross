@@ -55,7 +55,10 @@ protected:
     : task::Task(name),
       imu_sensors{{IMU(1), IMU(2), IMU(3)}}  // Initialize three IMU sensors with unique IDs.
   {
+    
+  #ifndef UNIT_TESTING
     set_periodic_task_interval(std::chrono::milliseconds(PROCESSING_INTERVAL));
+  #endif
   }
 
   /**
@@ -103,14 +106,18 @@ private:
   FRIEND_TEST(IMUTaskTest, VotingAllDisagreeReturnsNone);
   FRIEND_TEST(IMUTaskTest, VoteValidIMUsPerformance);
   FRIEND_TEST(IMUTaskTest, SingleActiveSensorIsAlwaysValidIfClusterOfOne);
-  FRIEND_TEST(IMUTaskTest, SimulateDriftingIMU);
   FRIEND_TEST(IMUTaskTest, CompareIMUThresholdEdge);
+  FRIEND_TEST(IMUTaskTest, DegradeThenRecover);
+  FRIEND_TEST(IMUTaskTest, StartDegradedThenRecover);
+  FRIEND_TEST(IMUTaskTest, StartDegradedThenInvalid);
 #endif
   static constexpr std::chrono::milliseconds PROCESSING_INTERVAL = std::chrono::milliseconds(1); ///< Interval for processing IMU data.
   static constexpr std::chrono::milliseconds STALE_THRESHOLD = IMU_COUNT * PROCESSING_INTERVAL; ///< Threshold to consider IMU data as stale.
   static constexpr float ANGULAR_VEL_THRESHOLD = 0.2f;  ///< Max angular velocity difference [rad/s]
   static constexpr float LINEAR_ACCEL_THRESHOLD = 0.5f; ///< Max linear acceleration difference [m/s^2]
   static constexpr float ORIENTATION_THRESHOLD = 0.1f;  ///< Max quaternion difference (unitless)
+  static constexpr uint8_t IMU_RECOVERY_THRESHOLD = 3;  ///< Number of recovery passes before IMU is considered valid again.
+  static constexpr uint8_t IMU_RECOVERY_MAX_FAILURES = 5;  ///< Number of recovery passes before IMU is demoted to invalid.
 
   std::array<IMU, IMU_COUNT> imu_sensors; ///< Array of IMU sensor instances for data retrieval and processing.
 

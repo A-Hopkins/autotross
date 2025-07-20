@@ -36,9 +36,13 @@ uint16_t IMU::get_id() const
  * mechanism is determined by the implementation (e.g., reading from hardware registers, fetching
  * from a simulation environment).
  */
-msg::IMUDataMsg IMU::get_current_data() const
+IMU::IMUMetaData IMU::get_current_data() const
 {
-  return current_imu_data;
+  IMUMetaData data;
+  data.imu_data = current_imu_data;
+  data.status = status;
+  data.recovery_pass_count = recovery_pass_count;
+  return data;
 }
 
 /**
@@ -49,6 +53,52 @@ msg::IMUDataMsg IMU::get_current_data() const
 IMU::Status IMU::get_status() const
 {
   return status;
+}
+
+/**
+ * @brief Gets the number of recovery passes.
+ *
+ * This function returns the number of recovery attempts made by the IMU sensor.
+ * It is used to track how many times the sensor has tried to recover from an invalid state.
+ */
+uint8_t IMU::get_recovery_pass_count() const
+{
+  return recovery_pass_count;
+}
+
+/**
+ * @brief Sets the number of recovery passes.
+ *
+ * This function updates the number of recovery attempts made by the IMU sensor.
+ *
+ * @param count The new count of recovery passes.
+ */
+void IMU::set_recovery_pass_count(uint8_t count)
+{
+  recovery_pass_count = count;
+}
+
+/**
+ * @brief Gets the number of recovery fails.
+ *
+ * This function returns the number of recovery failures made by the IMU sensor.
+ * It is used to track how many times the sensor has failed to recover from a degraded state.
+ */
+uint8_t IMU::get_recovery_fail_count() const
+{
+  return recovery_fail_count;
+}
+
+/**
+ * @brief Sets the number of recovery fails.
+ *
+ * This function updates the number of recovery failures made by the IMU sensor.
+ *
+ * @param count The new count of recovery fails.
+ */
+void IMU::set_recovery_fail_count(uint8_t count)
+{
+  recovery_fail_count = count;
 }
 
 /**
@@ -98,6 +148,7 @@ void IMU::start()
             .header      = {.seq      = extracted_header.seq,
                             .stamp    = {.sec = t.sec, .nsec = t.nsec},
                             .frame_id = extracted_header.frame_id},
+            .sensor_id   = imu_id,
             .orientation = {msg.orientation().x(), msg.orientation().y(), msg.orientation().z(),
                             msg.orientation().w()},
             .orientation_covariance =

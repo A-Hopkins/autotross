@@ -31,8 +31,18 @@ public:
   {
     UNINITIALIZED, ///< IMU has not been initialized.
     VALID,         ///< IMU is initialized and ready to provide data.
+    DEGRADED,      ///< IMU is initialized but data quality is degraded (e.g., single sensor, or not consistently valid).
     INVALID,       ///< IMU is initialized but data is not valid (e.g., sensor mafuntion).
   };
+
+  struct IMUMetaData
+  {
+    msg::IMUDataMsg imu_data;    ///< The IMU data message containing sensor readings.
+    Status status;               ///< The current status of the IMU sensor.
+    uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
+    uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
+  };
+
   /**
    * @brief Constructs an IMU interface.
    *
@@ -76,7 +86,7 @@ public:
    * mechanism is determined by the implementation (e.g., reading from hardware registers, fetching
    * from a simulation environment).
    */
-  msg::IMUDataMsg get_current_data() const;
+  IMUMetaData get_current_data() const;
 
   /**
    * @brief Gets the current IMU status.
@@ -84,6 +94,40 @@ public:
    * This function returns the current status of the IMU sensor, indicating the validity of the data.
    */
   Status get_status() const;
+
+  /**
+   * @brief Gets the number of recovery passes.
+   *
+   * This function returns the number of recovery attempts made by the IMU sensor.
+   * It is used to track how many times the sensor has tried to recover from an invalid state.
+   */
+  uint8_t get_recovery_pass_count() const;
+
+  /**
+   * @brief Sets the number of recovery passes.
+   *
+   * This function updates the number of recovery attempts made by the IMU sensor.
+   *
+   * @param count The new count of recovery passes.
+   */
+  void set_recovery_pass_count(uint8_t count);
+
+  /**
+   * @brief Gets the number of recovery fails.
+   *
+   * This function returns the number of recovery failures made by the IMU sensor.
+   * It is used to track how many times the sensor has failed to recover from a degraded state.
+   */
+  uint8_t get_recovery_fail_count() const;
+
+  /**
+   * @brief Sets the number of recovery fails.
+   *
+   * This function updates the number of recovery failures made by the IMU sensor.
+   *
+   * @param count The new count of recovery fails.
+   */
+  void set_recovery_fail_count(uint8_t count);
 
   /**
    * @brief Sets the IMU status.
@@ -98,4 +142,6 @@ private:
   Status status; ///< Current status of the IMU sensor (e.g., UNINITIALIZED, VALID, INVALID).
   uint16_t imu_id; ///< Unique identifier for the IMU sensor instance.
   msg::IMUDataMsg current_imu_data{0}; ///< Holds the most recent IMU data read from the sensor.
+  uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
+  uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
 };

@@ -27,6 +27,11 @@ namespace msg
     Header header;
 
     /**
+     * @brief ID of the IMU sensor. 
+     */
+     uint16_t sensor_id;
+
+    /**
      * @brief Orientation estimate as a quaternion (x, y, z, w).
      * The order is [x, y, z, w].
      */

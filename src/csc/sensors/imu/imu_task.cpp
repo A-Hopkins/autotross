@@ -145,38 +145,104 @@ void IMUTask::process_imu_data()
 {
   if (current_state == task::TaskState::RUNNING)
   {
-    // Collect data from all IMU sensors
-    std::array<msg::IMUDataMsg, IMU_COUNT> local_imu_data;
-    std::array<bool, IMU_COUNT> local_imu_status;
-    local_imu_data.fill(msg::IMUDataMsg{});
-    local_imu_status.fill(false);
+    // Fetch current metadata from all sensors
+    std::array<IMU::IMUMetaData, IMU_COUNT> local_imu_data;
+    std::array<msg::IMUDataMsg, IMU_COUNT> voting_candidates;
+    std::array<bool, IMU_COUNT> valid_mask;
+    std::array<bool, IMU_COUNT> degraded_mask;
 
-    for(size_t i = 0; i < IMU_COUNT; ++i)
+    local_imu_data.fill(IMU::IMUMetaData{});
+    voting_candidates.fill(msg::IMUDataMsg{});
+    valid_mask.fill(false);
+    degraded_mask.fill(false);
+
+    // Snapshot IMU data and status
+    for (size_t i = 0; i < IMU_COUNT; ++i)
     {
-      if (imu_sensors[i].get_status() == IMU::Status::VALID)
+      local_imu_data[i] = imu_sensors[i].get_current_data();
+      if (local_imu_data[i].status == IMU::Status::VALID)
       {
-        local_imu_status[i] = true;
-        local_imu_data[i] = imu_sensors[i].get_current_data();
+        valid_mask[i] = true;
+        voting_candidates[i] = local_imu_data[i].imu_data;
+      }
+      else if (local_imu_data[i].status == IMU::Status::DEGRADED)
+      {
+        degraded_mask[i] = true;
+        voting_candidates[i] = local_imu_data[i].imu_data; // Will be used for recovery voting
       }
     }
 
-    std::array<bool, IMU_COUNT> valid_imus = vote_valid_imus(local_imu_data, local_imu_status);
+    // Run primary voting among VALID sensors
+    std::array<bool, IMU_COUNT> valid_imus = vote_valid_imus(voting_candidates, valid_mask);
 
-    // Publish Valid IMU data
+    // Handle VALID sensor publishing and demotion if rejected by vote
     for (size_t i = 0; i < IMU_COUNT; ++i)
     {
-      if (valid_imus[i])
+      if (valid_mask[i] && valid_imus[i])
       {
-        safe_publish(msg::Msg(this, local_imu_data[i]));
+        // Publish only currently VALID and vote-confirmed IMUs
+        safe_publish(msg::Msg(this, voting_candidates[i]));
+      }
+      else if (valid_mask[i] && !valid_imus[i])
+      {
+        // Demote to DEGRADED, reset recovery counters
+        imu_sensors[i].set_status(IMU::Status::DEGRADED);
+        imu_sensors[i].set_recovery_pass_count(0);
+        imu_sensors[i].set_recovery_fail_count(0);
+
+        // TODO: Publish a sensor status so other components can react
+        Logger::instance().log(LogLevel::WARN, get_name(),
+                              "IMU sensor " + std::to_string(imu_sensors[i].get_id()) +
+                              " voted out. Marking as DEGRADED.");
+      }
+    }
+
+    // Try to recover DEGRADED sensors (do not publish)
+
+    std::array<bool, IMU_COUNT> combined_mask;
+    for (size_t i = 0; i < IMU_COUNT; ++i)
+    {
+      // Combine valid and degraded masks for recovery voting (separate from degraded to track an actual degraded recovery vote)
+      combined_mask[i] = (valid_mask[i] || degraded_mask[i]);
+    }
+    
+    // We now test each DEGRADED sensor against the VALID sensors using the same voting logic
+    std::array<bool, IMU_COUNT> recovery_vote = vote_valid_imus(voting_candidates, combined_mask);
+    for (size_t i = 0; i < IMU_COUNT; ++i)
+    {
+      if (!degraded_mask[i])
+      {
+        continue; // Not in recovery set
+      }
+
+      if (recovery_vote[i])
+      {
+        uint8_t pass_count = imu_sensors[i].get_recovery_pass_count() + 1;
+        imu_sensors[i].set_recovery_pass_count(pass_count);
+        imu_sensors[i].set_recovery_fail_count(0); // reset fail counter
+
+        if (pass_count >= IMU_RECOVERY_THRESHOLD)
+        {
+          imu_sensors[i].set_status(IMU::Status::VALID);
+          imu_sensors[i].set_recovery_pass_count(0);
+          Logger::instance().log(LogLevel::INFO, get_name(),
+                                "IMU sensor " + std::to_string(imu_sensors[i].get_id()) +
+                                " passed recovery threshold. Promoted to VALID.");
+        }
       }
       else
       {
-        imu_sensors[i].set_status(IMU::Status::INVALID);
-        Logger::instance().log(LogLevel::ERROR, get_name(),
-                               "IMU sensor " + std::to_string(imu_sensors[i].get_id()) +
-                                " reported invalid data. Stopping sensor.");
-        // TODO possible recovery?
-        imu_sensors[i].stop();
+        uint8_t fail_count = imu_sensors[i].get_recovery_fail_count() + 1;
+        imu_sensors[i].set_recovery_fail_count(fail_count);
+        imu_sensors[i].set_recovery_pass_count(0); // reset pass counter
+
+        if (fail_count >= IMU_RECOVERY_MAX_FAILURES)
+        {
+          imu_sensors[i].set_status(IMU::Status::INVALID);
+          Logger::instance().log(LogLevel::ERROR, get_name(),
+                                "IMU sensor " + std::to_string(imu_sensors[i].get_id()) +
+                                " failed recovery repeatedly. Marked INVALID and stopped.");
+        }
       }
     }
   }

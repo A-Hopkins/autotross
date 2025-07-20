@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <deque>
 
-std::unordered_map<uint16_t, std::deque<msg::IMUDataMsg>> imu_data_queues;
+std::unordered_map<uint16_t, std::deque<IMU::IMUMetaData>> imu_data_queues;
 
 IMU::IMU(uint16_t id) : status(Status::UNINITIALIZED), imu_id(id), current_imu_data{id}
 {
@@ -18,6 +18,52 @@ IMU::IMU(uint16_t id) : status(Status::UNINITIALIZED), imu_id(id), current_imu_d
 uint16_t IMU::get_id() const
 {
   return imu_id;
+}
+
+/**
+ * @brief Gets the number of recovery passes.
+ *
+ * This function returns the number of recovery attempts made by the IMU sensor.
+ * It is used to track how many times the sensor has tried to recover from an invalid state.
+ */
+uint8_t IMU::get_recovery_pass_count() const
+{
+  return recovery_pass_count;
+}
+
+/**
+ * @brief Sets the number of recovery passes.
+ *
+ * This function updates the number of recovery attempts made by the IMU sensor.
+ *
+ * @param count The new count of recovery passes.
+ */
+void IMU::set_recovery_pass_count(uint8_t count)
+{
+  recovery_pass_count = count;
+}
+
+/**
+ * @brief Gets the number of recovery fails.
+ *
+ * This function returns the number of recovery failures made by the IMU sensor.
+ * It is used to track how many times the sensor has failed to recover from a degraded state.
+ */
+uint8_t IMU::get_recovery_fail_count() const
+{
+  return recovery_fail_count;
+}
+
+/**
+ * @brief Sets the number of recovery fails.
+ *
+ * This function updates the number of recovery failures made by the IMU sensor.
+ *
+ * @param count The new count of recovery fails.
+ */
+void IMU::set_recovery_fail_count(uint8_t count)
+{
+  recovery_fail_count = count;
 }
 
 /**
@@ -51,19 +97,26 @@ void IMU::stop()
   status = Status::UNINITIALIZED;
 }
 
-msg::IMUDataMsg IMU::get_current_data() const
+IMU::IMUMetaData IMU::get_current_data() const
 {
-  auto& q = imu_data_queues[imu_id];
-  if (!q.empty()) {
-    msg::IMUDataMsg result = q.front();
-    q.pop_front();
-    q.push_back(result); // Optional: rotate to loop
-    return result;
+  IMUMetaData meta;
+  meta.status = status;
+  meta.recovery_pass_count = recovery_pass_count;
+  meta.imu_data = current_imu_data;
+
+  auto& queue = imu_data_queues[imu_id];
+  if (!queue.empty())
+  {
+    IMUMetaData next = queue.front();
+    queue.pop_front();
+    queue.push_back(next); // Optional rotation
+    meta = next;
   }
-  return current_imu_data;  // fallback
+
+  return meta;
 }
 
-void inject_imu_data_sequence(uint16_t id, const std::deque<msg::IMUDataMsg>& data)
+void inject_imu_data_sequence(uint16_t id, const std::deque<IMU::IMUMetaData>& data)
 {
   imu_data_queues[id] = data;
 }

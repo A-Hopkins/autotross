@@ -14,6 +14,8 @@
 
 #include <algorithm>
 
+static std::array<msg::IMUDataMsg, IMUTask::IMU_COUNT> last_seen_imu_data{};
+
 /**
  * @brief Destructor for the IMUTask class.
  *
@@ -160,6 +162,32 @@ void IMUTask::process_imu_data()
     for (size_t i = 0; i < IMU_COUNT; ++i)
     {
       local_imu_data[i] = imu_sensors[i].get_current_data();
+
+      // Compare to last-seen
+      if (msg::IMUDataMsg::approx_equal(local_imu_data[i].imu_data, last_seen_imu_data[i]))
+      {
+        imu_sensors[i].set_stale_read_count(imu_sensors[i].get_stale_read_count() + 1);
+      }
+      else
+      {
+        imu_sensors[i].set_stale_read_count(0);
+        last_seen_imu_data[i] = local_imu_data[i].imu_data;
+        Logger::instance().log(LogLevel::WARN, get_name(),
+                              "IMU " + std::to_string(imu_sensors[i].get_id()) +
+                              " stale data detected.");
+      }
+
+      if ((imu_sensors[i].get_status() != IMU::Status::INVALID || imu_sensors[i].get_status() != IMU::Status::UNINITIALIZED) &&
+          imu_sensors[i].get_stale_read_count() >= IMU_STALE_THRESHOLD)
+      {
+        // TODO: Evalulate if it should go to INVALID or DEGRADED
+        imu_sensors[i].set_status(IMU::Status::INVALID);
+        Logger::instance().log(LogLevel::ERROR, get_name(),
+                              "IMU " + std::to_string(imu_sensors[i].get_id()) +
+                              " marked INVALID due to stale data.");
+        continue; // Skip invalid IMUs
+      }
+
       if (local_imu_data[i].status == IMU::Status::VALID)
       {
         valid_mask[i] = true;

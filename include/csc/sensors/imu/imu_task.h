@@ -110,6 +110,7 @@ private:
   FRIEND_TEST(IMUTaskTest, DegradeThenRecover);
   FRIEND_TEST(IMUTaskTest, StartDegradedThenRecover);
   FRIEND_TEST(IMUTaskTest, StartDegradedThenInvalid);
+  FRIEND_TEST(IMUTaskTest, StaleSensorDetection);
 #endif
   static constexpr std::chrono::milliseconds PROCESSING_INTERVAL = std::chrono::milliseconds(1); ///< Interval for processing IMU data.
   static constexpr std::chrono::milliseconds STALE_THRESHOLD = IMU_COUNT * PROCESSING_INTERVAL; ///< Threshold to consider IMU data as stale.
@@ -118,6 +119,7 @@ private:
   static constexpr float ORIENTATION_THRESHOLD = 0.1f;  ///< Max quaternion difference (unitless)
   static constexpr uint8_t IMU_RECOVERY_THRESHOLD = 3;  ///< Number of recovery passes before IMU is considered valid again.
   static constexpr uint8_t IMU_RECOVERY_MAX_FAILURES = 5;  ///< Number of recovery passes before IMU is demoted to invalid.
+  static constexpr uint8_t IMU_STALE_THRESHOLD = 3; ///< Number of stale reads before IMU is considered invalid.
 
   std::array<IMU, IMU_COUNT> imu_sensors; ///< Array of IMU sensor instances for data retrieval and processing.
 

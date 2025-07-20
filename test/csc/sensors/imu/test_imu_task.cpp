@@ -172,19 +172,28 @@ TEST_F(IMUTaskTest, DegradeThenRecover)
 
   // First: stable inputs for initial VALID state
   std::deque<IMU::IMUMetaData> stable(3);
-  for (auto& m : stable)
+  for (int i = 0; i < 3; ++i)
   {
-    m.imu_data.angular_velocity = {1.0, 1.0, 1.0};
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::VALID;
+    stable[i] = m;
   }
 
   // Outlier sequence for sensor 2 to cause degradation
   std::deque<IMU::IMUMetaData> faulty = stable;
-  for (auto& m : faulty)
+  for (int i = 0; i < 3; ++i)
   {
-    m.imu_data.angular_velocity = {20.0, 20.0, 20.0};
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {20.0 + i * 0.001, 20.0, 20.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::VALID;
+    faulty[i] = m;
   }
+
   std::deque<IMU::IMUMetaData> now_valid_data = stable;
   for (auto& m : now_valid_data)
   {
@@ -225,16 +234,24 @@ TEST_F(IMUTaskTest, StartDegradedThenRecover)
 
   std::deque<IMU::IMUMetaData> valid_data(5);
   std::deque<IMU::IMUMetaData> now_valid_data(5);
-  for (auto& m : valid_data)
+  for (int i = 0; i < 5; ++i)
   {
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::VALID;
-    m.imu_data.angular_velocity = {1.0, 1.0, 1.0};
+    valid_data[i] = m;
   }
-
-  for (auto& m : now_valid_data)
+  
+  for (int i = 0; i < 5; ++i)
   {
-    m.imu_data.angular_velocity = {1.0, 1.0, 1.0};
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::DEGRADED;
+    now_valid_data[i] = m;
   }
 
   inject_imu_data_sequence(1, valid_data);
@@ -260,22 +277,66 @@ TEST_F(IMUTaskTest, StartDegradedThenInvalid)
 
 
   std::deque<IMU::IMUMetaData> valid_data(5);
-  for (auto& m : valid_data)
+  for (int i = 0; i < 5; ++i)
   {
-    m.imu_data.angular_velocity = {1.0, 1.0, 1.0};
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::VALID;
+    valid_data[i] = m;
   }
 
   std::deque<IMU::IMUMetaData> faulty_data(5);
-  for (auto& m : faulty_data)
+  for (int i = 0; i < 5; ++i)
   {
-    m.imu_data.angular_velocity = {100.0, 100.0, 100.0};
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {100.0 + i * 0.001, 100.0, 100.0}; // subtle variation to avoid stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
     m.status = IMU::Status::DEGRADED;
+    faulty_data[i] = m;
   }
 
   inject_imu_data_sequence(1, valid_data);
   inject_imu_data_sequence(2, valid_data);
   inject_imu_data_sequence(3, faulty_data);
+
+  for (int i = 0; i < 5; ++i)
+  {
+    task->process_imu_data();
+  }
+
+  EXPECT_EQ(task->imu_sensors[2].get_status(), IMU::Status::INVALID);
+}
+
+TEST_F(IMUTaskTest, StaleSensorDetection)
+{
+  task->transition_to_state(task::TaskState::RUNNING);
+
+  std::deque<IMU::IMUMetaData> stable(5);
+  for (int i = 0; i < 5; ++i)
+  {
+    IMU::IMUMetaData m;
+    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // prevent stale
+    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
+    m.status = IMU::Status::VALID;
+    stable[i] = m;
+  }
+
+  std::deque<IMU::IMUMetaData> stale(5);
+  for (auto& m : stale)
+  {
+    m.imu_data.angular_velocity = {2.0, 2.0, 2.0};
+    m.imu_data.linear_acceleration = {0.2, 0.2, 0.2};
+    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
+    m.status = IMU::Status::VALID;
+  }
+
+  inject_imu_data_sequence(1, stable);
+  inject_imu_data_sequence(2, stable);
+  inject_imu_data_sequence(3, stale); // sensor 3 will go stale
 
   for (int i = 0; i < 5; ++i)
   {

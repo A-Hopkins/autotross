@@ -77,5 +77,13 @@ namespace msg
              ", linear_acceleration: " + linear_acceleration.str() +
              ", linear_acceleration_covariance: " + linear_acceleration_covariance.str() + " }";
     }
+
+    static bool approx_equal(const IMUDataMsg& a, const IMUDataMsg& b, double eps = 1e-6)
+    {
+      return linalg::almost_equal(a.angular_velocity, b.angular_velocity, eps) &&
+             linalg::almost_equal(a.linear_acceleration, b.linear_acceleration, eps) &&
+             linalg::almost_equal(a.orientation, b.orientation, eps);
+    }
+
   };
 } // namespace msg

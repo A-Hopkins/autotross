@@ -41,6 +41,7 @@ public:
     Status status;               ///< The current status of the IMU sensor.
     uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
     uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
+    uint8_t stale_read_count; ///< Counter for how many times the IMU data has been stale.
   };
 
   /**
@@ -130,6 +131,22 @@ public:
   void set_recovery_fail_count(uint8_t count);
 
   /**
+   * @brief Gets the number of stale reads.
+   *
+   * This function returns the number of times the IMU data has been considered stale.
+   * It is used to track how many times the sensor has not provided fresh data.
+   */
+  uint8_t get_stale_read_count() const;
+  
+  /**
+   * @brief Gets the number of stale reads.
+   *
+   * This function returns the number of times the IMU data has been considered stale.
+   * It is used to track how many times the sensor has not provided fresh data.
+   */
+  void set_stale_read_count(uint8_t count);
+
+  /**
    * @brief Sets the IMU status.
    *
    * This function updates the current status of the IMU sensor.
@@ -144,4 +161,5 @@ private:
   msg::IMUDataMsg current_imu_data{0}; ///< Holds the most recent IMU data read from the sensor.
   uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
   uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
+  uint8_t stale_read_count; ///< Counter for how many times the IMU data has been stale.
 };

@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <chrono>
 #include <string>
+#include <random>
 
 #include "msg/common_types/header.h"
 
@@ -74,4 +75,43 @@ namespace gazebo_helper
     return msg::Timestamp{static_cast<uint32_t>(wall_sec), static_cast<uint32_t>(wall_nsec)};
   }
 
+  /**
+   * @brief Add Gaussian noise to each element of a vector.
+   * 
+   * @tparam N Dimension of the vector.
+   * @param vec The input vector.
+   * @param stddev The standard deviation of the noise.
+   * @return A new vector with noise added.
+   */
+  template <size_t N>
+  linalg::Vector<N> add_noise(const linalg::Vector<N>& vec, double stddev)
+  {
+    static thread_local std::mt19937 gen(std::random_device{}());
+    std::normal_distribution<double> dist(0.0f, stddev);
+    linalg::Vector<N> noisy = vec;
+    for (size_t i = 0; i < N; ++i)
+    {
+      noisy[i] += dist(gen);
+    }
+    return noisy;
+  }
+
+  /**
+   * @brief Create a diagonal covariance matrix from standard deviation.
+   * 
+   * @tparam N Size of the square matrix.
+   * @param stddev The standard deviation for each axis.
+   * @return A diagonal matrix with variance values on the diagonal.
+   */
+  template <size_t N>
+  linalg::Matrix<N, N> create_covariance_matrix(double stddev)
+  {
+    linalg::Matrix<N, N> cov{};
+    double variance = stddev * stddev;
+    for (size_t i = 0; i < N; ++i)
+    {
+      cov(i, i) = variance;
+    }
+    return cov;
+  }
 } // namespace gazebo_helper

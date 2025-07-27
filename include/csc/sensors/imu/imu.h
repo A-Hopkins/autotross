@@ -162,4 +162,6 @@ private:
   uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
   uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
   uint8_t stale_read_count; ///< Counter for how many times the IMU data has been stale.
+  bool running = false;     ///< Flag indicating whether the IMU data stream is currently active.
+  bool initialized = false; ///< Flag indicating whether the IMU has been initialized and is ready to provide data.
 };

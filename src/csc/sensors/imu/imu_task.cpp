@@ -163,24 +163,35 @@ void IMUTask::process_imu_data()
     {
       local_imu_data[i] = imu_sensors[i].get_current_data();
 
-      // Compare to last-seen
-      if (msg::IMUDataMsg::approx_equal(local_imu_data[i].imu_data, last_seen_imu_data[i]))
+      // If the IMU is not initialized, skip it
+      if (local_imu_data[i].status == IMU::Status::UNINITIALIZED)
       {
-        imu_sensors[i].set_stale_read_count(imu_sensors[i].get_stale_read_count() + 1);
-      }
-      else
-      {
-        imu_sensors[i].set_stale_read_count(0);
-        last_seen_imu_data[i] = local_imu_data[i].imu_data;
         Logger::instance().log(LogLevel::WARN, get_name(),
                               "IMU " + std::to_string(imu_sensors[i].get_id()) +
-                              " stale data detected.");
+                              " is UNINITIALIZED. Skipping data processing.");
+        continue; // Skip uninitialized IMUs
       }
 
-      if ((imu_sensors[i].get_status() != IMU::Status::INVALID || imu_sensors[i].get_status() != IMU::Status::UNINITIALIZED) &&
-          imu_sensors[i].get_stale_read_count() >= IMU_STALE_THRESHOLD)
+      // Only Valid sensors participate in stale detection
+      if (local_imu_data[i].status == IMU::Status::VALID)
       {
-        // TODO: Evalulate if it should go to INVALID or DEGRADED
+        if (msg::IMUDataMsg::approx_equal(local_imu_data[i].imu_data, last_seen_imu_data[i], 1e-12))
+        {
+          imu_sensors[i].set_stale_read_count(imu_sensors[i].get_stale_read_count() + 1);
+          Logger::instance().log(LogLevel::WARN, get_name(),
+                                "IMU " + std::to_string(imu_sensors[i].get_id()) +
+                                " stale data detected.");
+        }
+        else
+        {
+          imu_sensors[i].set_stale_read_count(0);
+          last_seen_imu_data[i] = local_imu_data[i].imu_data;
+        }
+      }
+
+      if (imu_sensors[i].get_stale_read_count() >= IMU_STALE_THRESHOLD && (imu_sensors[i].get_status() != IMU::Status::INVALID &&
+          imu_sensors[i].get_status() != IMU::Status::UNINITIALIZED))
+      {
         imu_sensors[i].set_status(IMU::Status::INVALID);
         Logger::instance().log(LogLevel::ERROR, get_name(),
                               "IMU " + std::to_string(imu_sensors[i].get_id()) +
@@ -216,7 +227,6 @@ void IMUTask::process_imu_data()
         // Demote to DEGRADED, reset recovery counters
         imu_sensors[i].set_status(IMU::Status::DEGRADED);
         imu_sensors[i].set_recovery_pass_count(0);
-        imu_sensors[i].set_recovery_fail_count(0);
 
         // TODO: Publish a sensor status so other components can react
         Logger::instance().log(LogLevel::WARN, get_name(),

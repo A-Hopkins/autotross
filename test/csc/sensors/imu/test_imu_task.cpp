@@ -314,10 +314,11 @@ TEST_F(IMUTaskTest, StaleSensorDetection)
 {
   task->transition_to_state(task::TaskState::RUNNING);
 
-  std::deque<IMU::IMUMetaData> stable(5);
-  for (int i = 0; i < 5; ++i)
+  std::deque<IMU::IMUMetaData> stable(11);
+  for (int i = 0; i < 11; ++i)
   {
     IMU::IMUMetaData m;
+    m.imu_data.header.stamp.sec = i;
     m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // prevent stale
     m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
     m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
@@ -325,9 +326,10 @@ TEST_F(IMUTaskTest, StaleSensorDetection)
     stable[i] = m;
   }
 
-  std::deque<IMU::IMUMetaData> stale(5);
+  std::deque<IMU::IMUMetaData> stale(11);
   for (auto& m : stale)
   {
+    m.imu_data.header.stamp.sec = 10;
     m.imu_data.angular_velocity = {2.0, 2.0, 2.0};
     m.imu_data.linear_acceleration = {0.2, 0.2, 0.2};
     m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
@@ -338,7 +340,7 @@ TEST_F(IMUTaskTest, StaleSensorDetection)
   inject_imu_data_sequence(2, stable);
   inject_imu_data_sequence(3, stale); // sensor 3 will go stale
 
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 11; ++i)
   {
     task->process_imu_data();
   }

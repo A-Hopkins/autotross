@@ -80,9 +80,19 @@ namespace msg
 
     static bool approx_equal(const IMUDataMsg& a, const IMUDataMsg& b, double eps = 1e-6)
     {
+
+      auto to_nanosec = [](const Timestamp& t)
+      {
+        return static_cast<double>(t.sec) * 1e9 + static_cast<double>(t.nsec);
+      };
+
+      const uint64_t a_time = to_nanosec(a.header.stamp);
+      const uint64_t b_time = to_nanosec(b.header.stamp);
+
       return linalg::almost_equal(a.angular_velocity, b.angular_velocity, eps) &&
              linalg::almost_equal(a.linear_acceleration, b.linear_acceleration, eps) &&
-             linalg::almost_equal(a.orientation, b.orientation, eps);
+             linalg::almost_equal(a.orientation, b.orientation, eps) &&
+             a_time == b_time;
     }
 
   };

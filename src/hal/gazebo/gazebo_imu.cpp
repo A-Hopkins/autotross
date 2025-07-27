@@ -7,9 +7,6 @@
 /** @brief Gazebo transport node for communication. */
 static gz::transport::Node node;
 
-/** @brief Flag indicating if the IMU data processing is active. */
-static bool running = false;
-
 /**
  * @brief Construct a new IMU object.
  *
@@ -138,7 +135,10 @@ void IMU::set_status(IMU::Status new_status)
 void IMU::start()
 {
   running = true;
-  status = Status::VALID;
+  recovery_pass_count = 0;
+  recovery_fail_count = 0;
+  stale_read_count = 0;
+  current_imu_data = {0};
 
   node.Subscribe<gz::msgs::IMU>(
       "/sensors/imu_" + std::to_string(imu_id),
@@ -205,6 +205,13 @@ void IMU::start()
 
         // Update the current IMU data
         current_imu_data = imu_data;
+
+        if (!initialized)
+        {
+          // Initialize the IMU data structure
+          status = Status::VALID;
+          initialized = true;
+        }
       }
   );
 }

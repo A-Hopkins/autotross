@@ -113,6 +113,11 @@ void IMU::set_status(IMU::Status new_status)
 void IMU::start()
 {
   status = Status::VALID;
+  initialized = true;
+  running = true;
+  recovery_pass_count = 0;
+  recovery_fail_count = 0;
+  stale_read_count = 0;
 }
 void IMU::stop()
 { 

@@ -13,8 +13,14 @@
 #include "core/scoped_timer.h"
 
 #include <algorithm>
+#include <chrono>
 
-static std::array<msg::IMUDataMsg, IMUTask::IMU_COUNT> last_seen_imu_data{};
+static std::array<msg::IMUDataMsg, IMUTask::IMU_COUNT> last_imu_sample{};
+static const auto start = std::chrono::steady_clock::now();
+static std::array<std::chrono::steady_clock::time_point, IMUTask::IMU_COUNT> last_imu_time =
+{
+  start, start, start
+};
 
 /**
  * @brief Destructor for the IMUTask class.
@@ -158,6 +164,8 @@ void IMUTask::process_imu_data()
     valid_mask.fill(false);
     degraded_mask.fill(false);
 
+    const auto now = std::chrono::steady_clock::now();
+
     // Snapshot IMU data and status
     for (size_t i = 0; i < IMU_COUNT; ++i)
     {
@@ -175,21 +183,15 @@ void IMUTask::process_imu_data()
       // Only Valid sensors participate in stale detection
       if (local_imu_data[i].status == IMU::Status::VALID)
       {
-        if (msg::IMUDataMsg::approx_equal(local_imu_data[i].imu_data, last_seen_imu_data[i], 1e-12))
+        if (!msg::IMUDataMsg::approx_equal(local_imu_data[i].imu_data, last_imu_sample[i], 1e-12))
         {
-          imu_sensors[i].set_stale_read_count(imu_sensors[i].get_stale_read_count() + 1);
-          Logger::instance().log(LogLevel::WARN, get_name(),
-                                "IMU " + std::to_string(imu_sensors[i].get_id()) +
-                                " stale data detected.");
-        }
-        else
-        {
-          imu_sensors[i].set_stale_read_count(0);
-          last_seen_imu_data[i] = local_imu_data[i].imu_data;
+          last_imu_sample[i] = local_imu_data[i].imu_data;
+          last_imu_time[i] = now;
         }
       }
 
-      if (imu_sensors[i].get_stale_read_count() >= IMU_STALE_THRESHOLD && (imu_sensors[i].get_status() != IMU::Status::INVALID &&
+      // Check if the IMU data is stale
+      if (now - last_imu_time[i] > STALE_TIMEOUT&& (imu_sensors[i].get_status() != IMU::Status::INVALID &&
           imu_sensors[i].get_status() != IMU::Status::UNINITIALIZED))
       {
         imu_sensors[i].set_status(IMU::Status::INVALID);

@@ -314,36 +314,46 @@ TEST_F(IMUTaskTest, StaleSensorDetection)
 {
   task->transition_to_state(task::TaskState::RUNNING);
 
-  std::deque<IMU::IMUMetaData> stable(11);
-  for (int i = 0; i < 11; ++i)
-  {
-    IMU::IMUMetaData m;
-    m.imu_data.header.stamp.sec = i;
-    m.imu_data.angular_velocity = {1.0 + i * 0.001, 1.0, 1.0}; // prevent stale
-    m.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
-    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
-    m.status = IMU::Status::VALID;
-    stable[i] = m;
-  }
+  // One fresh sample for sensors 1 & 2
+  IMU::IMUMetaData fresh;
+  fresh.imu_data.header.stamp.sec = 0;
+  fresh.imu_data.angular_velocity = {1.0, 1.0, 1.0};
+  fresh.imu_data.linear_acceleration = {0.1, 0.1, 0.1};
+  fresh.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
+  fresh.status = IMU::Status::VALID;
 
-  std::deque<IMU::IMUMetaData> stale(11);
-  for (auto& m : stale)
-  {
-    m.imu_data.header.stamp.sec = 10;
-    m.imu_data.angular_velocity = {2.0, 2.0, 2.0};
-    m.imu_data.linear_acceleration = {0.2, 0.2, 0.2};
-    m.imu_data.orientation = {0.0, 0.0, 0.0, 1.0};
-    m.status = IMU::Status::VALID;
-  }
+  // Frozen sample for sensor 3
+  IMU::IMUMetaData stale = fresh;
 
-  inject_imu_data_sequence(1, stable);
-  inject_imu_data_sequence(2, stable);
-  inject_imu_data_sequence(3, stale); // sensor 3 will go stale
+  std::deque<IMU::IMUMetaData> valid_data{fresh};
+  std::deque<IMU::IMUMetaData> stale_data{stale};
 
-  for (int i = 0; i < 11; ++i)
-  {
-    task->process_imu_data();
-  }
+  inject_imu_data_sequence(1, valid_data);
+  inject_imu_data_sequence(2, valid_data);
+  inject_imu_data_sequence(3, stale_data);
 
+  // First pass – everything valid
+  task->process_imu_data();
+  EXPECT_EQ(task->imu_sensors[0].get_status(), IMU::Status::VALID);
+  EXPECT_EQ(task->imu_sensors[1].get_status(), IMU::Status::VALID);
+  EXPECT_EQ(task->imu_sensors[2].get_status(), IMU::Status::VALID);
+
+  // Wait for timeout
+  std::this_thread::sleep_for(IMUTask::STALE_TIMEOUT + std::chrono::milliseconds(20));
+
+  // Provide a single *new* sample for sensors 1 & 2 so they stay fresh
+  IMU::IMUMetaData fresh2 = fresh;
+  fresh2.imu_data.header.stamp.sec = 1; // ensure different timestamp
+  fresh2.imu_data.angular_velocity = {1.001, 1.0, 1.0};
+  std::deque<IMU::IMUMetaData> q_fresh2{fresh2};
+
+  inject_imu_data_sequence(1, q_fresh2);
+  inject_imu_data_sequence(2, q_fresh2);
+
+  // Second pass – sensor 3 should time out, others remain valid
+  task->process_imu_data();
+
+  EXPECT_EQ(task->imu_sensors[0].get_status(), IMU::Status::VALID);
+  EXPECT_EQ(task->imu_sensors[1].get_status(), IMU::Status::VALID);
   EXPECT_EQ(task->imu_sensors[2].get_status(), IMU::Status::INVALID);
 }

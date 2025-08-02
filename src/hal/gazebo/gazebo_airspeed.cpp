@@ -119,25 +119,28 @@ std::tuple<double, double> Airspeed::compute_true_airspeed(double diff_pressure,
                                                            double pressure_variance,
                                                            double temp_variance)
 {
+  // Constants
+  constexpr double R = 287.05;                      // [J/(kg*K)]
+  constexpr double P_STATIC = 101325.0;             // [Pa] standard atmospheric pressure
+  constexpr double MIN_DIFFERENTIAL_PRESSURE = 0.1; // [Pa]
+
+
   // Handle invalid differential pressure gracefully
-  if (diff_pressure <= 0.0)
+  if (diff_pressure <= MIN_DIFFERENTIAL_PRESSURE)
   {
     return {0.0, 0.0};
   }
 
-  // Constants
-  constexpr double R = 287.05;          // [J/(kg*K)]
-  constexpr double P_static = 101325.0; // [Pa] standard atmospheric pressure
 
   // Compute air density
-  double rho = P_static / (R * temp);
+  double rho = P_STATIC / (R * temp);
 
   // Compute true airspeed
   double v = std::sqrt(2.0 * diff_pressure / rho);
 
   // Error propagation: dv/dp and dv/dT
   double dv_dp = 1.0 / (std::sqrt(2.0 * diff_pressure / rho)) * (1.0 / rho);
-  double dv_dT = 1.0 / (std::sqrt(2.0 * diff_pressure / rho)) * (diff_pressure * P_static) / (std::pow(rho, 3) * R * std::pow(temp, 2));
+  double dv_dT = 1.0 / (std::sqrt(2.0 * diff_pressure / rho)) * (diff_pressure * P_STATIC) / (std::pow(rho, 3) * R * std::pow(temp, 2));
 
   // Propagate variance
   double v_var = dv_dp * dv_dp * pressure_variance + dv_dT * dv_dT * temp_variance;

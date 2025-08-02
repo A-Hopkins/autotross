@@ -60,7 +60,7 @@ public:
    * the implementation (e.g., hardware polling, subscribing to simulation topics, event-driven updates).
    * The specific implementation is determined at compile time based on build configurations (e.g., `USE_SIM` flag).
    */
-  void start();
+  virtual void start();
 
   /**
    * @brief Stops the IMU data stream.
@@ -68,7 +68,7 @@ public:
    * This function halts IMU data collection. The behavior of stopping (e.g., disabling hardware
    * polling, unsubscribing from simulation updates, etc.) is implementation-specific.
    */
-  void stop();
+  virtual void stop();
 
   /**
    * @brief Gets the unique identifier for this IMU instance.
@@ -77,7 +77,7 @@ public:
    * The ID is typically used to distinguish between multiple IMU sensors in a system.
    *
    */
-  uint16_t get_id() const;
+  virtual uint16_t get_id() const;
 
   /**
    * @brief Reads the current IMU data.
@@ -86,14 +86,14 @@ public:
    * mechanism is determined by the implementation (e.g., reading from hardware registers, fetching
    * from a simulation environment).
    */
-  IMUMetaData get_current_data() const;
+  virtual IMUMetaData get_current_data() const;
 
   /**
    * @brief Gets the current IMU status.
    * 
    * This function returns the current status of the IMU sensor, indicating the validity of the data.
    */
-  Status get_status() const;
+  virtual Status get_status() const;
 
   /**
    * @brief Gets the number of recovery passes.
@@ -101,7 +101,7 @@ public:
    * This function returns the number of recovery attempts made by the IMU sensor.
    * It is used to track how many times the sensor has tried to recover from an invalid state.
    */
-  uint8_t get_recovery_pass_count() const;
+  virtual uint8_t get_recovery_pass_count() const;
 
   /**
    * @brief Sets the number of recovery passes.
@@ -110,7 +110,7 @@ public:
    *
    * @param count The new count of recovery passes.
    */
-  void set_recovery_pass_count(uint8_t count);
+  virtual void set_recovery_pass_count(uint8_t count);
 
   /**
    * @brief Gets the number of recovery fails.
@@ -118,7 +118,7 @@ public:
    * This function returns the number of recovery failures made by the IMU sensor.
    * It is used to track how many times the sensor has failed to recover from a degraded state.
    */
-  uint8_t get_recovery_fail_count() const;
+  virtual uint8_t get_recovery_fail_count() const;
 
   /**
    * @brief Sets the number of recovery fails.
@@ -127,7 +127,7 @@ public:
    *
    * @param count The new count of recovery fails.
    */
-  void set_recovery_fail_count(uint8_t count);
+  virtual void set_recovery_fail_count(uint8_t count);
 
   /**
    * @brief Sets the IMU status.
@@ -136,7 +136,7 @@ public:
    *
    * @param new_status The new status to set for the IMU sensor.
    */
-  void set_status(Status new_status);
+  virtual void set_status(Status new_status);
 
 private:
   Status status; ///< Current status of the IMU sensor (e.g., UNINITIALIZED, VALID, INVALID).

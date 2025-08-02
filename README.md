@@ -168,7 +168,7 @@ The component supports configurable message rates, prioritization policies, and 
 - formatted, prioritized outbound data for ground control
 
 **Goal:**
-To provide prioritized, timely, and operator-relevant telemetry of the UAV’s state, status, and health during flight operations, supporting situational awareness, debugging, and safety monitoring.
+To provide prioritized, timely, and operator-relevant telemetry of the UAV's state, status, and health during flight operations, supporting situational awareness, debugging, and safety monitoring.
 ---
 
 ## Getting Started

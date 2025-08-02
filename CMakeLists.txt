@@ -44,6 +44,7 @@ set(SOURCES
     src/csc/sensors/imu/imu_task.cpp
     src/csc/sensors/gps/gps_task.cpp
     src/csc/sensors/altimeter/altimeter_task.cpp
+    src/csc/sensors/airspeed/airspeed_task.cpp
 )
 
 # Conditionally include source files and dependencies based on the USE_SIM option.
@@ -63,6 +64,7 @@ if(USE_SIM)
       src/hal/gazebo/gazebo_imu.cpp
       src/hal/gazebo/gazebo_gps.cpp
       src/hal/gazebo/gazebo_altimeter.cpp
+      src/hal/gazebo/gazebo_airspeed.cpp
       )
 
   if(gz-transport13_FOUND)

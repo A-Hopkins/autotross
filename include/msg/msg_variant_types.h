@@ -35,6 +35,7 @@
 #include "imu_msg.h"
 #include "gps_msg.h"
 #include "altimeter_msg.h"
+#include "airspeed_msg.h"
 #include "msg/system_msgs.h"
 #include <cstdint>
 #include <string>
@@ -51,6 +52,7 @@ namespace msg
   X(HeartbeatAckMsg, 49),                                              \
   X(IMUDataMsg, 10),                                                   \
   X(AltimeterDataMsg, 10),                                             \
+  X(AirspeedDataMsg, 10),                                              \
   X(GPSDataMsg, 10)
 #endif
 // Message type declarations are provided in "system_msgs.h"

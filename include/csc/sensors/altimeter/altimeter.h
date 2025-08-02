@@ -49,7 +49,7 @@ public:
    * implementation uses multiple threads. The `msg::AltimeterDataMsg` object passed to the callback
    * contains the latest barometric altitude, pressure, and temperature measurements.
    */
-  void start(std::function<void(const msg::AltimeterDataMsg&)> callback);
+  virtual void start(std::function<void(const msg::AltimeterDataMsg&)> callback);
 
   /**
    * @brief Stops the altimeter data stream.
@@ -57,7 +57,7 @@ public:
    * This function halts altimeter data collection. The behavior of stopping (e.g., disabling hardware
    * polling, unsubscribing from simulation updates, etc.) is implementation-specific.
    */
-  void stop();
+  virtual void stop();
 
 private:
   bool running = false; ///< Indicates if the altimeter data stream is currently running.

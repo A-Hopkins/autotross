@@ -4,6 +4,7 @@
 #include "csc/sensors/imu/imu_task.h"
 #include "csc/sensors/gps/gps_task.h"
 #include "csc/sensors/altimeter/altimeter_task.h"
+#include "csc/sensors/airspeed/airspeed_task.h"
 
 #include "protocore/include/broker.h"
 #include "protocore/include/heart_beat.h"
@@ -47,6 +48,7 @@ int main()
   std::shared_ptr<IMUTask> imu_task = IMUTask::create();
   std::shared_ptr<GPSTask> gps_task = GPSTask::create();
   std::shared_ptr<AltimeterTask> altimeter_task = AltimeterTask::create();
+  std::shared_ptr<AirspeedTask> airspeed_task = AirspeedTask::create();
 
   // ---------------------------------------------------------------------------
   // STEP 4: Register Tasks with the StateManager
@@ -62,6 +64,7 @@ int main()
   state_manager->register_task(imu_task);
   state_manager->register_task(gps_task);
   state_manager->register_task(altimeter_task);
+  state_manager->register_task(airspeed_task);
 
   // ---------------------------------------------------------------------------
   // STEP 5: Initialize and Start the StateManager

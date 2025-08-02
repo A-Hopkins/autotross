@@ -45,7 +45,7 @@ namespace msg
     linalg::Matrix<3, 3> orientation_covariance;
 
     /**
-     * @brief Angular velocity vector in rad/s.
+     * @brief Angular velocity vector in [rad/s].
      * Components are [x, y, z].
      */
     linalg::Vector<3> angular_velocity;
@@ -57,7 +57,7 @@ namespace msg
     linalg::Matrix<3, 3> angular_velocity_covariance;
 
     /**
-     * @brief Linear acceleration vector in m/s^2.
+     * @brief Linear acceleration vector in [m/s^2].
      * Components are [x, y, z]. Does not include gravity.
      */
     linalg::Vector<3> linear_acceleration;

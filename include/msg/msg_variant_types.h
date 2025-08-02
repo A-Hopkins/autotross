@@ -33,6 +33,7 @@
 #pragma once
 
 #include "imu_msg.h"
+#include "gps_msg.h"
 #include "msg/system_msgs.h"
 #include <cstdint>
 #include <string>
@@ -47,7 +48,8 @@ namespace msg
   X(StateAckMsg, 99),                                                  \
   X(HeartbeatMsg, 50),                                                 \
   X(HeartbeatAckMsg, 49),                                              \
-  X(IMUDataMsg, 10)
+  X(IMUDataMsg, 10),                                                   \
+  X(GPSDataMsg, 10)
 #endif
 // Message type declarations are provided in "system_msgs.h"
 // Define the MessageVariant type using the list of message types.

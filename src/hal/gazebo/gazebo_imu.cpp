@@ -1,3 +1,11 @@
+/**
+ * @file gazebo_imu.cpp
+ * @brief Implementation of the IMU sensor interface using Gazebo transport.
+ *
+ * This file provides the Gazebo-specific implementation for the IMU sensor,
+ * subscribing to Gazebo topics and converting the messages to the internal
+ * format.
+ */
 #include "csc/sensors/imu/imu.h"
 #include "gazebo_helpers.h"
 #include "msg/imu_msg.h"

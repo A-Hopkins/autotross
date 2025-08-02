@@ -167,26 +167,11 @@ void IMU::start()
                   msg.orientation_covariance().data()[8]}},
             .angular_velocity            = {msg.angular_velocity().x(), msg.angular_velocity().y(),
                                             msg.angular_velocity().z()},
-            .angular_velocity_covariance = {{msg.angular_velocity_covariance().data()[0],
-                                             msg.angular_velocity_covariance().data()[1],
-                                             msg.angular_velocity_covariance().data()[2]},
-                                            {msg.angular_velocity_covariance().data()[3],
-                                             msg.angular_velocity_covariance().data()[4],
-                                             msg.angular_velocity_covariance().data()[5]},
-                                            {msg.angular_velocity_covariance().data()[6],
-                                             msg.angular_velocity_covariance().data()[7],
-                                             msg.angular_velocity_covariance().data()[8]}},
+            .angular_velocity_covariance = linalg::Matrix<3, 3>::identity(),
             .linear_acceleration = {msg.linear_acceleration().x(), msg.linear_acceleration().y(),
                                     msg.linear_acceleration().z()},
-            .linear_acceleration_covariance = {{msg.linear_acceleration_covariance().data()[0],
-                                                msg.linear_acceleration_covariance().data()[1],
-                                                msg.linear_acceleration_covariance().data()[2]},
-                                               {msg.linear_acceleration_covariance().data()[3],
-                                                msg.linear_acceleration_covariance().data()[4],
-                                                msg.linear_acceleration_covariance().data()[5]},
-                                               {msg.linear_acceleration_covariance().data()[6],
-                                                msg.linear_acceleration_covariance().data()[7],
-                                                msg.linear_acceleration_covariance().data()[8]}}};
+            .linear_acceleration_covariance = linalg::Matrix<3, 3>::identity()
+        };
 
         // Update the current IMU data
         current_imu_data = imu_data;
@@ -197,8 +182,7 @@ void IMU::start()
           status = Status::VALID;
           initialized = true;
         }
-      }
-  );
+      });
 }
 
 /**

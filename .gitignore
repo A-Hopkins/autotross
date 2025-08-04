@@ -85,3 +85,4 @@ out/
 ### CMake Patch ###
 # External projects
 *-prefix/
+*.pyc

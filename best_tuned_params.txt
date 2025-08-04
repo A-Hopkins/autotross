@@ -1,0 +1,10 @@
+process_noise_pos: 0.000336
+process_noise_vel: 0.054512
+process_noise_acc: 0.096683
+process_noise_quat: 0.000550
+process_noise_omega: 0.025738
+pos_uncertainty: 2.531408
+vel_uncertainty: 0.573733
+acc_uncertainty: 0.750851
+quat_uncertainty: 0.403167
+omega_uncertainty: 0.107382

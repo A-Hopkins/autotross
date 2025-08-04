@@ -168,7 +168,7 @@ class Scenario:
     pressure=101325.0,
     # Updated sensor noise values based on real-world specs
     gps_pos_noise=1.5,      # meters
-    gps_vel_noise=0.05,     # m/s
+    gps_vel_noise=0.5,      # m/s
     imu_accel_noise=0.2,    # m/s^2
     imu_gyro_noise=0.005,   # rad/s
     orientation_noise=0.005, # quaternion noise

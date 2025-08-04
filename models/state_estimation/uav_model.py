@@ -52,18 +52,20 @@ def run_scenario(scenario_config, name="", plot=True):
   tuning = scenario_config.get('tuning_params', {})
   
   # Initial state uncertainties - median values across scenarios
-  pos_uncertainty = tuning.get('pos_uncertainty', 10.0)           # Conservative value ~50m
-  vel_uncertainty = tuning.get('vel_uncertainty', 2.5)           # Middle ground ~2.5 m/s
-  acc_uncertainty = tuning.get('acc_uncertainty', 1.0)           # Moderate ~1.0 m/s^2
-  quat_uncertainty = tuning.get('quat_uncertainty', 1.0)         # Conservative ~0.02 rad
-  omega_uncertainty = tuning.get('omega_uncertainty', 1.0)       # Middle ground ~0.1 rad/s
+  pos_uncertainty = tuning.get('pos_uncertainty', 2.531408)
+  vel_uncertainty = tuning.get('vel_uncertainty', 0.573733)
+  acc_uncertainty = tuning.get('acc_uncertainty', 0.750851)
+  quat_uncertainty = tuning.get('quat_uncertainty', 0.403167)
+  omega_uncertainty = tuning.get('omega_uncertainty', 0.107382)
 
   # Process noise parameters - consistent across scenarios
-  process_noise_pos = tuning.get('process_noise_pos', 0.5)       # All scenarios prefer 0.0001
-  process_noise_vel = tuning.get('process_noise_vel', 1.0)       # Compromise between 0.139-1.0
-  process_noise_acc = tuning.get('process_noise_acc', 1.0)       # Middle ground for all cases
-  process_noise_quat = tuning.get('process_noise_quat', 5.0)     # Consistent around 0.001
-  process_noise_omega = tuning.get('process_noise_omega', 5.0)   # Compromise for all dynamics
+  # Chosing somewhat high process values because our system
+  # can be varyingly dynamical and the sensor noise is low, easier to trust
+  process_noise_pos = tuning.get('process_noise_pos', 0.000336)
+  process_noise_vel = tuning.get('process_noise_vel', 0.054512)
+  process_noise_acc = tuning.get('process_noise_acc', 0.096683)
+  process_noise_quat = tuning.get('process_noise_quat', 0.005500)
+  process_noise_omega = tuning.get('process_noise_omega', 0.025738)
 
   # Initialize covariance with tuned uncertainties
   ekf.covariance = np.zeros((state_dim, state_dim))
@@ -327,6 +329,12 @@ def run_scenario(scenario_config, name="", plot=True):
     gps_gains = [log["kalman_gain_norm"] for log in ekf.debug_logs if log["label"] == "gps_vel"]
     plt.plot(gps_gains)
     plt.title("Kalman Gain Norm per State Dim for GPS Velocity")
+    plt.xlabel("Time Step")
+    plt.ylabel("Gain Norm")
+    plt.show()
+    quat_gains = [log["kalman_gain_norm"] for log in ekf.debug_logs if log["label"] == "IMU Quat"]
+    plt.plot(quat_gains)
+    plt.title("Kalman Gain Norm per State Dim for quatern")
     plt.xlabel("Time Step")
     plt.ylabel("Gain Norm")
     plt.show()

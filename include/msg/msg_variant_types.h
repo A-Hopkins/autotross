@@ -36,6 +36,7 @@
 #include "gps_msg.h"
 #include "altimeter_msg.h"
 #include "airspeed_msg.h"
+#include "state_estimate_msg.h"
 #include "msg/system_msgs.h"
 #include <cstdint>
 #include <string>
@@ -53,7 +54,8 @@ namespace msg
   X(IMUDataMsg, 10),                                                   \
   X(AltimeterDataMsg, 10),                                             \
   X(AirspeedDataMsg, 10),                                              \
-  X(GPSDataMsg, 10)
+  X(GPSDataMsg, 10),                                                   \
+  X(StateEstimateMsg, 20)
 #endif
 // Message type declarations are provided in "system_msgs.h"
 // Define the MessageVariant type using the list of message types.

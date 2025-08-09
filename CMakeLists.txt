@@ -41,6 +41,8 @@ target_include_directories(protocore BEFORE PUBLIC
 # Define the list of source files for the main autotross executable.
 set(SOURCES
     src/main.cpp
+    src/csc/localization/state_estimation_task.cpp
+
     src/csc/sensors/imu/imu_task.cpp
     src/csc/sensors/gps/gps_task.cpp
     src/csc/sensors/altimeter/altimeter_task.cpp

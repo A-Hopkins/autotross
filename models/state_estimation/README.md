@@ -1,199 +1,134 @@
-# UAV State Estimation using EKF
 
-This repository models and simulates a state estimation system for a fixed-wing UAV using an Extended Kalman Filter (EKF). It provides a realistic sensor simulation pipeline, multiple test scenarios (e.g., straight and level flight, climbing, circling), and tools for parameter tuning and accuracy evaluation.
+# UAV State Estimation using an Extended Kalman Filter
+
+This repository provides a simulation and modeling environment for a fixed-wing UAV's state estimation system. The core of the system is a 13-dimensional Extended Kalman Filter (EKF) that implements a robust, IMU-driven kinematic model. This architecture allows for high-frequency state prediction and is capable of dead reckoning during short GPS outages.
+
+The project includes a realistic sensor simulation pipeline, multiple flight scenarios for testing (e.g., straight flight, circles, climbs), and tools for evaluating filter accuracy and optimizing tuning parameters.
+
+---
+## Key Components
+
+* `uav_model.py`: The main entry point for running scenarios, defining the EKF models, and evaluating performance.
+* `ekf.py`: A general-purpose Extended Kalman Filter class.
+* `simulate_sensors.py`: A comprehensive sensor simulator that generates realistic flight data, including both ground truth and noisy measurements.
+* `parameter_tuning_opt.py`: A script using Bayesian Optimization (`scikit-optimize`) to automatically find the best EKF tuning parameters.
 
 ---
 
-## Overview
+## How to Run a Simulation
 
-The simulation tracks the UAV's pose, velocity, acceleration, and orientation using a 16-element state vector. The EKF fuses synthetic measurements from simulated GPS, IMU, barometer, and airspeed sensors. All sensors include tunable noise models.
-
-**Key Components:**
-
-* `ekf.py`: A general-purpose Extended Kalman Filter class
-* `simulate_sensors.py`: Sensor simulator for generating time-series data with truth vs noisy readings
-* `uav_model.py`: The entry point for running scenarios and evaluating EKF performance
-* `parameter_tuning.py`: Batch scenario runner for tuning filter parameters
-
----
-
-## How to Run
+To run all predefined flight scenarios and see their corresponding plots and error metrics, execute the main model file:
 
 ```bash
 python uav_model.py
-```
+````
 
-Each defined scenario will be simulated, run through the EKF, and evaluated using error metrics. Plots for position, velocity, and orientation are shown per scenario.
-
----
+-----
 
 ## State Vector Design
 
-The EKF tracks the following 16-dimensional state vector:
+The EKF tracks a 13-dimensional state vector, chosen to describe the UAV's motion without including redundant states.
 
-```text
-[x, y, z, vx, vy, vz, ax, ay, az, qx, qy, qz, qw, wx, wy, wz]
-```
+`[x, y, z, vx, vy, vz, qx, qy, qz, qw, wx, wy, wz]`
 
-* **Position** (x, y, z): In meters, East-North-Up (ENU) frame
-* **Velocity** (vx, vy, vz): m/s in ENU
-* **Acceleration** (ax, ay, az): m/s^2 in ENU
-* **Orientation** (qx, qy, qz, qw): Quaternion representing body-to-ENU rotation
-* **Angular velocity** (wx, wy, wz): rad/s in body frame
+| Element | Description | Reason for Inclusion |
+| :--- | :--- | :--- |
+| **Position** `[0:3]` | `x, y, z` (meters) | Primary navigation state; location in the ENU frame. |
+| **Velocity** `[3:6]` | `vx, vy, vz` (m/s) | Required to predict future position and model airspeed. |
+| **Orientation** `[6:10]`| `qx, qy, qz, qw` (quaternion) | Critical for rotating vectors (like acceleration) between the UAV's body frame and the world (ENU) frame. |
+| **Angular Velocity** `[10:13]`| `wx, wy, wz` (rad/s) | Used to propagate the orientation forward in time. This is what the gyroscope measures. |
 
-### Why Each Element Matters
 
-| Element          | Reason for Inclusion                                          |
-| ---------------- | ------------------------------------------------------------- |
-| Position         | Primary navigation target (where is the UAV?)                 |
-| Velocity         | Needed to predict next position and airspeed                  |
-| Acceleration     | Allows IMU modeling; smoother transitions                     |
-| Orientation      | Required to convert between body and world frames             |
-| Angular velocity | Needed to integrate orientation and compare to gyroscope data |
+-----
 
----
+## System Architecture: An IMU-Driven Kinematic Model
 
-## Dynamics Model and State Transition
+This EKF uses a robust and modern architecture that leverages the high frequency of IMU data for prediction and corrects with absolute sensors. The core philosophy is **"Predict with IMU, Correct with others."**
 
-The dynamics model assumes:
+### Prediction Step:
 
-* Constant acceleration model for translational motion
-* Quaternion integration using angular velocity for rotational dynamics
+The filter's `predict` step is driven by the 6-DOF IMU measurements (`ax, ay, az, wx, wy, wz`) which are treated as a **control input vector `u`**.
 
-### State Transition Function f(x)
+The state transition function `f(x, u)` performs the following physics calculations:
 
-Given a timestep `dt`:
+1.  **Propagate Orientation:** The new orientation is calculated by integrating the measured angular velocity (`omega_body`) from the gyroscope.
+2.  **Rotate Acceleration:** The measured linear acceleration (`accel_body`), which is in the drone's body frame, is rotated into the global ENU frame using the current orientation quaternion.
+3.  **Calculate Inertial Acceleration:** Gravity is added back to the rotated vector to get the true inertial acceleration in the ENU frame.
+4.  **Update Velocity & Position:** The new velocity and position are found by integrating this inertial acceleration forward in time.
 
-```text
-pos_next = pos + vel * dt + 0.5 * acc * dt^2
-vel_next = vel + acc * dt
-acc_next = acc  (assumed constant over small dt)
-quat_next = quat * delta_quat(omega * dt)
-omega_next = omega  (assumed constant over small dt)
-```
+### Update Step:
 
-Quaternion propagation uses the exponential map:
+The `update` step uses measurements from slower, absolute sensors to correct the drift that inevitably accumulates during the prediction step.
 
-```text
-delta_quat = axis-angle -> quaternion from omega * dt
-```
+  * **GPS (Position & Velocity):** Provides the primary, non-drifting anchor for the UAV's position and velocity.
+  * **Fused IMU Quaternion:** Provides the primary anchor for the UAV's **attitude**. This corrects for the drift from integrating the gyroscope.
+  * **Barometer:** Provides an additional source of altitude information.
+  * **Airspeed Sensor:** Provides a measurement of the velocity magnitude, helping to constrain the velocity estimate.
 
-The Jacobian F(x) reflects these relationships and is used in the EKF prediction step.
+This "predict-correct" cycle allows the filter to produce a smooth, high-rate state estimate that remains locked to reality while being able to "coast" through short GPS outages using the IMU-driven dead reckoning.
 
----
+-----
 
-## Sensor Models
+## Sensor Fusion Logic
 
-Sensors are simulated with configurable Gaussian noise. All simulate both noisy and ground-truth data.
+The filter fuses data from multiple sensors, each with a specific role:
 
-### Simulated Sensors
+| Sensor | Role in EKF |
+| :--- | :--- |
+| **IMU (Accel + Gyro)** | **Control Input.** Drives the high-frequency `predict` step. Not used for updates. |
+| **GPS (Position/Velocity)** | **Primary Corrector.** Provides absolute position and velocity updates to eliminate drift. |
+| **IMU Fused Quaternion** | **Attitude Corrector.** Provides an absolute orientation update to correct for gyro drift. |
+| **Barometer** | **Altitude Corrector.** Provides a supplementary, independent measurement of altitude (`z` position). |
+| **Airspeed Sensor** | **Velocity Corrector.** Provides a measurement of the velocity vector's magnitude. |
 
-| Sensor    | Measured Fields                      | Modeled As                   |
-| --------- | ------------------------------------ | ---------------------------- |
-| GPS       | Position (lat, lon, alt), velocity   | Direct ENU + velocity        |
-| Barometer | Altitude                             | Noisy z-coordinate           |
-| Airspeed  | True airspeed                        | norm of velocity             |
-| IMU       | Orientation, angular velocity, accel | Body-frame, includes gravity |
 
-Each sensor update is modeled as a linear or nonlinear function of the state with its own measurement model and covariance.
+-----
 
----
+## Tuning the Filter
 
-## Sensor Noise Settings
+Filter performance is critically dependent on two sets of parameters defined in `uav_model.py`. The recommended way to find optimal values is by running the `parameter_tuning_opt.py` script.
 
-These are based on realistic specs for small fixed-wing UAVs:
+#### 1\. Initial State Uncertainty (`P`)
 
-| Sensor          | Std Dev     | Justification                          |
-| --------------- | ----------- | -------------------------------------- |
-| GPS Position    | 1.5 m       | Consumer-grade GNSS                    |
-| GPS Velocity    | 0.05 m/s    | Filtered from GNSS Doppler             |
-| IMU Accel       | 0.2 m/s^2   | Mid-grade IMU under moderate vibration |
-| IMU Gyro        | 0.005 rad/s | High-grade MEMS                        |
-| IMU Orientation | 0.005       | From full 9-DoF fusion                 |
-| Barometer       | 0.5 m       | Filtered barometric altimeter          |
-| Airspeed (DP)   | 1.0 Pa      | Pitot-tube sensor accuracy             |
+These values set the initial covariance matrix, telling the filter how certain it is about its starting state.
 
-### Sensor Measurement Models
+  * `pos_uncertainty`
+  * `vel_uncertainty`
+  * `quat_uncertainty`
+  * `omega_uncertainty`
 
-| Sensor         | Measurement Function h(x) | Jacobian H(x)            | Noise Covariance R |
-| -------------- | ------------------------- | ------------------------ | ------------------ |
-| GPS Position   | x\[0:3]                   | 3x16 (identity on 0–2)   | sigma^2 \* I3      |
-| GPS Velocity   | x\[3:6]                   | 3x16 (identity on 3–5)   | sigma^2 \* I3      |
-| IMU Gyro       | x\[13:16]                 | 3x16 (identity on 13–15) | sigma^2 \* I3      |
-| IMU Quaternion | x\[9:13]                  | 4x16 (identity on 9–12)  | sigma^2 \* I4      |
-| IMU Accel      | R\_b^e \* (x\[6:9] + g)   | Approximated as 0        | sigma^2 \* I3      |
-| Barometer      | x\[2] (altitude)          | 1x16 (1 at index 2)      | sigma^2            |
-| Airspeed       | norm(x\[3:6])             | v / norm(v) in 3x16      | sigma^2            |
+#### 2\. Process Noise (`Q`)
 
----
+This models the uncertainty in our dynamics model, accounting for unmodeled forces like wind and turbulence. It tells the filter how much to trust its own prediction versus the incoming sensor measurements.
 
-## Defining a New Scenario
+  * `process_noise_pos`
+  * `process_noise_vel`
+  * `process_noise_quat`
+  * `process_noise_omega`
 
-To define a custom scenario, construct a config dictionary with the following keys:
-
-```python
-my_scenario = {
-    "name": "Spiral Ascent",
-    "start_orientation": np.array([0, 0, 0, 1]),
-    "end_orientation": R.from_euler('xyz', [0, 30, 90], degrees=True).as_quat(),
-    "start_velocity": np.array([5.0, 0.0, 0.0]),
-    "end_velocity": np.array([0.0, 5.0, 5.0]),
-    "start_position": np.array([0.0, 0.0, 100.0]),
-    "end_position": np.array([500.0, 500.0, 200.0]),
-    "duration_sec": 60.0,
-    "speed": 10.0,
-    "waypoints": simulate_sensors.generate_circle_waypoints(radius=200, height=150, num_points=12)
-}
-```
-
-Then in `uav_model.py`:
-
-```python
-run_scenario(my_scenario, name="Spiral Ascent")
-```
-
----
-
-## Tuning Parameters
-
-You can adjust filter tuning per scenario by adding a nested `tuning_params` field in the config:
+An example of a tuned parameter set:
 
 ```python
 "tuning_params": {
     "pos_uncertainty": 25.0,
     "vel_uncertainty": 2.0,
-    "acc_uncertainty": 1.0,
     "quat_uncertainty": 0.01,
     "omega_uncertainty": 0.05,
     "process_noise_pos": 0.0001,
     "process_noise_vel": 0.2,
-    "process_noise_acc": 0.05,
     "process_noise_quat": 0.001,
     "process_noise_omega": 0.1
 }
 ```
 
----
+-----
 
-## Evaluation Metrics
+## Evaluation and Plotting
 
-Each run computes:
+Each simulation run computes and prints key performance metrics, including:
 
-* RMSE of position, velocity, and orientation
-* Normalized Error Squared (NES): Should converge near 1.0 if tuned properly
-* Maximum error: Sanity check for outliers
+  * **RMSE:** Root Mean Squared Error for position, velocity, and orientation.
+  * **NES:** Normalized Error Squared, a statistical metric of filter consistency (a well-tuned filter has a NES near 1.0).
+  * **Maximum Error:** The peak error observed during the simulation.
 
-Orientation RMSE is computed via angle error between estimated and true quaternions.
-
----
-
-## Plot Outputs
-
-Plots include:
-
-* Position vs GPS vs EKF
-* Velocity vs EKF
-* Orientation (roll, pitch, yaw)
-* Error norms for position and velocity
-
----
+The script also generates detailed plots comparing the EKF estimate against the ground truth for position, velocity, and orientation, as well as plots of sensor residuals and error norms over time.

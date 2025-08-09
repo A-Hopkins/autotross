@@ -63,19 +63,22 @@ To convert high-level navigation goals into safe, feasible, and dynamically achi
 ---
 
 ### State Estimation CSC
-The State Estimation CSC is responsible for producing a consistent, time-aligned estimate of the UAV's global position, velocity, orientation, and horizontal wind velocity by fusing multiple asynchronous and noisy sensor sources. It operates an Extended Kalman Filter (EKF) with a 12-dimensional state vector comprising 3D position, 3D velocity, 4D orientation (quaternion), and 2D horizontal wind velocity in the global frame. The estimator receives raw IMU data (angular velocity and linear acceleration), global position and velocity measurements (e.g., from GPS), differential pressure from the airspeed sensor, and optional barometric altitude. It corrects for measurement delays and asynchronous update rates through a prediction-correction cycle, using a discretized rigid-body motion model for propagation.
+The State Estimation CSC is responsible for producing a consistent, time-aligned estimate of the UAV's global position, velocity, orientation, and horizontal wind velocity by fusing multiple asynchronous and noisy sensor sources. It operates an Extended Kalman Filter (EKF) with a 13-dimensional state vector comprising 3D position, 3D velocity, 4D orientation (quaternion), and 3D angular velocity. The estimator receives raw IMU data (angular velocity, linear acceleration, magnetometer), global position and velocity measurements (from GPS), differential pressure from the airspeed sensor, and barometric altitude.
 
-Wind velocity is estimated by comparing true airspeed, derived from differential pressure and estimated air density, with ground-relative velocity from GPS and orientation. The estimator applies data gating and sanity checks to reject low-confidence or physically invalid measurements. Its outputs are time-stamped, consistent state estimates published to all downstream consumers including the Flight Controller, Navigation, Safety Monitor, and Telemetry CSCs.
+The estimator's architecture is built on a modern, IMU-driven kinematic model:
+
+   * High-Frequency Prediction: The EKF uses high-rate IMU data (linear acceleration and angular velocity) as a control input to its dynamics model. This allows it to propagate the state forward in time, providing a smooth estimate and the ability to dead reckon through short GPS outages.
+
+   * Absolute Correction: The filter corrects for the inevitable drift of the IMU by fusing measurements from absolute sources in the update step. This includes position and velocity from the GPS, fused orientation from the IMU's onboard processor, altitude from the barometer, and true airspeed.
+
+ The estimator applies data gating and sanity checks to reject low-confidence or physically invalid measurements. Its outputs are time-stamped, consistent state estimates published to all downstream consumers including the Flight Controller, Navigation, Safety Monitor, and Telemetry CSCs.
 **Inputs:**
- - Angular velocity and linear acceleration (from IMU)
- - Global position and velocity (from GPS or equivalent)
+ - Angular velocity, linear acceleration, and orientation (from IMU)
+ - Global position and velocity (from GPS)
  - Airspeed differential pressure and temperature
  - Altitude vertical velocity and position
 
 **Outputs:**
- - Global position and velocity
- - Orientation as quaternion
- - Horizontal wind velocity estimate
  - Time-aligned full state estimate for all downstream CSCs
 
 **Goal:**

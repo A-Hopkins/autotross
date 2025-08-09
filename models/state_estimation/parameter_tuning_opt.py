@@ -9,13 +9,11 @@ from scipy.spatial.transform import Rotation as R
 param_space = [
     Real(1e-4, 1e-1, name='process_noise_pos', prior='log-uniform'),
     Real(1e-3, 1e+0, name='process_noise_vel', prior='log-uniform'),
-    Real(1e-2, 1e+1, name='process_noise_acc', prior='log-uniform'),
     Real(1e-4, 1e-1, name='process_noise_quat', prior='log-uniform'),
     Real(1e-3, 1e+0, name='process_noise_omega', prior='log-uniform'),
 
     Real(1e+0, 1e+2, name='pos_uncertainty', prior='log-uniform'),
     Real(1e-1, 1e+1, name='vel_uncertainty', prior='log-uniform'),
-    Real(1e-1, 1e+1, name='acc_uncertainty', prior='log-uniform'),
     Real(1e-2, 1e+0, name='quat_uncertainty', prior='log-uniform'),
     Real(1e-2, 1e+0, name='omega_uncertainty', prior='log-uniform')
 ]

@@ -156,7 +156,7 @@ class Scenario:
   def __init__(
     self,
     duration_sec=10.0,
-    rate_hz=.10,
+    rate_hz=10,
     start_orientation=np.array([0, 0, 0, 1]),
     end_orientation=np.array([0, 0.707, 0, 0.707]),
     start_velocity=np.array([0.0, 0.0, 0.0]),
@@ -283,7 +283,15 @@ class Scenario:
       # IMU measures proper acceleration (including gravity)
       accel_true = accel_true - gravity_body
   
-      gyro_true = np.zeros(3)
+      if i > 0:
+          q_prev = orientation_seq[i-1]
+          # Calculate the change in orientation from the previous step to the current
+          delta_rot = R.from_quat(q) * R.from_quat(q_prev).inv()
+          # The rotation vector represents the axis-angle change.
+          # Dividing by dt gives the average angular velocity.
+          gyro_true = delta_rot.as_rotvec() / self.dt
+      else:
+          gyro_true = np.zeros(3)
 
       # GPS (true)
       lat_true, lon_true, alt_true = enu_to_geodetic(p[0], p[1], p[2], self.lat0, self.lon0)

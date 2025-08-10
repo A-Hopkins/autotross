@@ -77,5 +77,6 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "*.inc": "cpp"
-    }
+    },
+    "editor.tabSize": 2
 }

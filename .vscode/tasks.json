@@ -21,7 +21,7 @@
     {
       "label": "Launch Gazebo GUI",
       "type": "shell",
-      "command": "gz",
+      "command": "gazebo.gz",
       "args": [
         "sim",
         "${workspaceFolder}/gazebo/worlds/runway.sdf",
@@ -39,7 +39,7 @@
     {
       "label": "Launch Gazebo Headless",
       "type": "shell",
-      "command": "gz",
+      "command": "gazebo.gz",
       "args": [
         "sim",
         "${workspaceFolder}/gazebo/worlds/runway.sdf",

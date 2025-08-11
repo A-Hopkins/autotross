@@ -17,9 +17,9 @@ namespace msg
   /**
    * @brief Represents the full estimated state of the UAV from the EKF.
    *
-   * This message contains the 13-dimensional state vector and the corresponding
-   * 13x13 covariance matrix, providing a complete picture of the UAV's
-   * estimated position, velocity, orientation, and angular rates, along with
+   * This message contains the 10-dimensional state vector and the corresponding
+   * 10x10 covariance matrix, providing a complete picture of the UAV's
+   * estimated position, velocity, and, orientation along with
    * their uncertainties. This is the primary output of the StateEstimationTask.
    */
   DECLARE_MESSAGE_TYPE(StateEstimateMsg)
@@ -47,22 +47,14 @@ namespace msg
     linalg::Vector<4> orientation;
 
     /**
-     * @brief Estimated angular velocity (wx, wy, wz) in rad/s in the body frame.
+     * @brief Full 10x10 covariance matrix of the state estimate.
+     * The state vector order is [pos, vel, quat].
      */
-    linalg::Vector<3> angular_velocity;
-
-    /**
-     * @brief Full 13x13 covariance matrix of the state estimate.
-     * The state vector order is [pos, vel, quat, ang_vel].
-     */
-    linalg::Matrix<13, 13> covariance;
+    linalg::Matrix<10, 10> covariance;
 
     std::string str() const
     {
-      return "StateEstimateMsg { position: " + position.str() +
-             ", velocity: " + velocity.str() +
-             ", orientation: " + orientation.str() +
-             ", angular_velocity: " + angular_velocity.str() +
+      return "StateEstimateMsg { position: " + position.str() + ", velocity: " + velocity.str() + ", orientation: " + orientation.str() +
              ", covariance: " + covariance.str() + " }";
     }
   };

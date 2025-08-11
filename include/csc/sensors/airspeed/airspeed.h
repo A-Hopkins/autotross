@@ -2,14 +2,15 @@
  * @file airspeed.h
  * @brief Defines an abstract Airspeed interface for sensor data retrieval.
  *
- * This header provides an abstract interface for Airspeed sensor interaction. The actual implementation
- * of the Airspeed functionality is determined at compile-time using conditional compilation, allowing
- * for flexibility in selecting between different Airspeed data sources (e.g., hardware-based or Gazebo
- * simulation).
+ * This header provides an abstract interface for Airspeed sensor interaction. The actual
+ * implementation of the Airspeed functionality is determined at compile-time using conditional
+ * compilation, allowing for flexibility in selecting between different Airspeed data sources (e.g.,
+ * hardware-based or Gazebo simulation).
  */
 
 #pragma once
 
+#include "kfplusplus/include/linalg.h"
 #include "msg/airspeed_msg.h"
 #include <functional>
 #include <tuple>
@@ -28,6 +29,12 @@
 class Airspeed
 {
 public:
+  inline static constexpr size_t AIRSPEED_MEASUREMENT_DIM = 1;   ///< Dimension of the airspeed measurement (1: true airspeed).
+  inline static const double     DP_STDDEV                = 1.0; ///< [Pa]
+
+  // --- Measurement Noise Covariance Matrices (R) ---
+  inline static const linalg::Matrix<AIRSPEED_MEASUREMENT_DIM, AIRSPEED_MEASUREMENT_DIM> R_airspeed =
+      linalg::Matrix<AIRSPEED_MEASUREMENT_DIM, AIRSPEED_MEASUREMENT_DIM>::identity() * (DP_STDDEV * DP_STDDEV); // Variance
 
   /**
    * @brief Constructs an Airspeed interface.
@@ -44,19 +51,20 @@ public:
    * data is available. The actual data retrieval mechanism depends on the implementation (hardware
    * polling, event-driven updates, etc.).
    *
-   * @param callback A function that receives Airspeed data as a `msg::AirspeedDataMsg`, representing
-   * sensor readings. The callback function will be invoked asynchronously whenever new Airspeed
-   * data arrives. It is crucial that the callback function is thread-safe if the underlying
-   * implementation uses multiple threads. The `msg::AirspeedDataMsg` object passed to the callback
-   * contains the latest Airspeed data including velocity and other relevant measurements.
+   * @param callback A function that receives Airspeed data as a `msg::AirspeedDataMsg`,
+   * representing sensor readings. The callback function will be invoked asynchronously whenever new
+   * Airspeed data arrives. It is crucial that the callback function is thread-safe if the
+   * underlying implementation uses multiple threads. The `msg::AirspeedDataMsg` object passed to
+   * the callback contains the latest Airspeed data including velocity and other relevant
+   * measurements.
    */
   virtual void start(std::function<void(const msg::AirspeedDataMsg&)> callback);
 
   /**
    * @brief Stops the Airspeed data stream.
    *
-   * This function halts Airspeed data collection. The behavior of stopping (e.g., disabling hardware
-   * polling, unsubscribing from simulation updates, etc.) is implementation-specific.
+   * This function halts Airspeed data collection. The behavior of stopping (e.g., disabling
+   * hardware polling, unsubscribing from simulation updates, etc.) is implementation-specific.
    */
   virtual void stop();
 
@@ -72,11 +80,9 @@ public:
    * @param temp_variance       Variance of temperature [K^2]
    * @return std::tuple<true_airspeed [m/s], variance [m^2/s^2]>
    */
-  virtual std::tuple<double, double> compute_true_airspeed(double diff_pressure,
-                                                           double temp,
-                                                           double pressure_variance,
+  virtual std::tuple<double, double> compute_true_airspeed(double diff_pressure, double temp, double pressure_variance,
                                                            double temp_variance);
 
 private:
-  bool running = false;     ///< Indicates if the Airspeed data stream is currently running.
+  bool running = false; ///< Indicates if the Airspeed data stream is currently running.
 };

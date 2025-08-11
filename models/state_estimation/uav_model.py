@@ -153,135 +153,72 @@ def run_scenario(scenario_config, name="", plot=True):
     return F
 
   # --- MEASUREMENT MODELS ---
-
   # Each sensor provides a measurement that is a function of the state vector.
-
   # For the EKF, we need two functions for each sensor type:
-
   # 1. Measurement Function `h(x)`: Predicts the sensor measurement given a
-
   #    state vector `x`.
-
   # 2. Measurement Jacobian `H(x)`: The partial derivative of `h(x)` with
-
   #    respect to the state `x`. This linearizes the measurement function
-
   #    around the current state estimate and is used to update the covariance.
 
-
   def h_gps(x):
-
     """Predicts a GPS position measurement from the state vector."""
-
     return x[0:3]
-
   def H_gps(x):
-
     """Jacobian of the GPS position measurement function."""
-
     H = np.zeros((3, state_dim))
-
     H[:, 0:3] = np.eye(3)
-
     return H
-
 
   def h_gps_vel(x):
-
     """Predicts a GPS velocity measurement from the state vector."""
-
     return x[3:6]
-
   def H_gps_vel(x):
-
     """Jacobian of the GPS velocity measurement function."""
-
     H = np.zeros((3, state_dim))
-
     H[:, 3:6] = np.eye(3)
-
     return H
-
 
   def h_baro(x):
-
     """Predicts a combined [altitude, vertical_velocity] measurementfrom the state vector."""
-
     return np.array([
-
         [x[2][0]], # z position
-
         [x[5][0]]  # vz velocity
-
     ])
-
-
   def H_baro(x):
-
     """Jacobian of the barometer measurement function."""
-
     H = np.zeros((2, state_dim))
-
     H[0, 2] = 1.0  # Partial derivative of z_meas w.r.t. z_state
-
     H[1, 5] = 1.0  # Partial derivative of vz_meas w.r.t. vz_state
-
     return H
-
 
   def h_airspeed(x):
-
     """Predicts a true airspeed measurement from the state vector.
-
     Airspeed is the magnitude of the velocity vector. This is a nonlinear
-
     function of the state.
-
     """
-
     return np.array([[np.linalg.norm(x[3:6])]])
-
   def H_airspeed(x):
-
     """Jacobian of the true airspeed measurement function.
-
     The partial derivative of the vector norm ||v|| with respect to the
-
     vector v is v / ||v||.
-
     """
-
     v = x[3:6].flatten()
-
     norm_v = np.linalg.norm(v)
-
     if norm_v < 1e-6:  # Avoid division by zero at near-zero speeds
-
        return np.zeros((1, state_dim))
-
     H = np.zeros((1, state_dim))
-
     H[0, 3:6] = v / norm_v
-
     return H
-
 
   def h_imu_quat(x):
-
     """Predicts an IMU orientation measurement from the state vector."""
-
     return x[6:10]
-
   def H_imu_quat(x):
-
     """Jacobian of the IMU orientation measurement function."""
-
     H = np.zeros((4, state_dim))
-
     H[:, 6:10] = np.eye(4)
-
     return H
-
 
   # --- MEASUREMENT NOISE COVARIANCE MATRICES (R) ---
 

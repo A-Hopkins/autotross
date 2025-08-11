@@ -1,15 +1,14 @@
-#include <iostream>
-#include <gz/transport.hh>
-
-#include "csc/sensors/imu/imu_task.h"
-#include "csc/sensors/gps/gps_task.h"
-#include "csc/sensors/altimeter/altimeter_task.h"
+#include "csc/localization/state_estimation_task.h"
 #include "csc/sensors/airspeed/airspeed_task.h"
-
+#include "csc/sensors/altimeter/altimeter_task.h"
+#include "csc/sensors/gps/gps_task.h"
+#include "csc/sensors/imu/imu_task.h"
 #include "protocore/include/broker.h"
 #include "protocore/include/heart_beat.h"
 #include "protocore/include/logger.h"
 #include "protocore/include/state_manager.h"
+#include <gz/transport.hh>
+#include <iostream>
 
 int main()
 {
@@ -27,7 +26,10 @@ int main()
   // The logger is responsible for capturing and storing logs for debugging and
   // monitoring purposes. Here, we configure it to use a file sink with DEBUG level.
   auto& logger = Logger::instance();
-  logger.set_level(LogLevel::DEBUG).add_sink(std::make_unique<FileSink>(log_file)).add_sink(std::make_unique<ConsoleSink>()).use_relative_timestamps(true);
+  logger.set_level(LogLevel::DEBUG)
+      .add_sink(std::make_unique<FileSink>(log_file))
+      .add_sink(std::make_unique<ConsoleSink>())
+      .use_relative_timestamps(true);
 
   // ---------------------------------------------------------------------------
   // STEP 2: Initialize the Broker
@@ -44,11 +46,13 @@ int main()
   // processing, localization, mapping, and control. Each task is created and
   // registered with the StateManager, which manages their lifecycle.
   std::shared_ptr<StateManager>  state_manager = StateManager::create();
-  std::shared_ptr<HeartBeatTask> heart_beat_task = HeartBeatTask::create("HeartBeat", state_manager);
-  std::shared_ptr<IMUTask> imu_task = IMUTask::create();
-  std::shared_ptr<GPSTask> gps_task = GPSTask::create();
-  std::shared_ptr<AltimeterTask> altimeter_task = AltimeterTask::create();
-  std::shared_ptr<AirspeedTask> airspeed_task = AirspeedTask::create();
+  std::shared_ptr<HeartBeatTask> heart_beat_task =
+      HeartBeatTask::create("HeartBeat", state_manager);
+  std::shared_ptr<IMUTask>             imu_task          = IMUTask::create();
+  std::shared_ptr<GPSTask>             gps_task          = GPSTask::create();
+  std::shared_ptr<AltimeterTask>       altimeter_task    = AltimeterTask::create();
+  std::shared_ptr<AirspeedTask>        airspeed_task     = AirspeedTask::create();
+  std::shared_ptr<StateEstimationTask> localization_task = StateEstimationTask::create();
 
   // ---------------------------------------------------------------------------
   // STEP 4: Register Tasks with the StateManager
@@ -59,12 +63,13 @@ int main()
   // for task registration events.
   state_manager->set_task_registration_observer(heart_beat_task);
 
-    // Register tasks with the state manager
+  // Register tasks with the state manager
   state_manager->register_task(heart_beat_task);
   state_manager->register_task(imu_task);
   state_manager->register_task(gps_task);
   state_manager->register_task(altimeter_task);
   state_manager->register_task(airspeed_task);
+  state_manager->register_task(localization_task);
 
   // ---------------------------------------------------------------------------
   // STEP 5: Initialize and Start the StateManager

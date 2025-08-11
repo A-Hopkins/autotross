@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "kfplusplus/include/linalg.h"
 #include "msg/imu_msg.h"
 #include <stdint.h>
 
@@ -27,6 +28,12 @@
 class IMU
 {
 public:
+  inline static constexpr size_t IMU_MEASUREMENT_DIM = 4;     ///< Dimension of the IMU orientation measurement (4: qx, qy, qz, qw).
+  inline static const double     IMU_STDDEV          = 0.005; ///< [unitless]
+
+  // --- Measurement Noise Covariance Matrices (R) ---
+  inline static const linalg::Matrix<IMU_MEASUREMENT_DIM, IMU_MEASUREMENT_DIM> R_imu =
+      linalg::Matrix<IMU_MEASUREMENT_DIM, IMU_MEASUREMENT_DIM>::identity() * (IMU_STDDEV * IMU_STDDEV); // Variance
   enum class Status
   {
     UNINITIALIZED, ///< IMU has not been initialized.
@@ -37,10 +44,10 @@ public:
 
   struct IMUMetaData
   {
-    msg::IMUDataMsg imu_data;    ///< The IMU data message containing sensor readings.
-    Status status;               ///< The current status of the IMU sensor.
-    uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
-    uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
+    msg::IMUDataMsg imu_data;            ///< The IMU data message containing sensor readings.
+    Status          status;              ///< The current status of the IMU sensor.
+    uint8_t         recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
+    uint8_t         recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
   };
 
   /**
@@ -48,7 +55,7 @@ public:
    *
    * Since this is an abstract interface, the constructor does not initialize any hardware or
    * simulation. The actual initialization behavior depends on the compiled implementation.
-   * 
+   *
    * @param imu_id Unique identifier for the IMU sensor instance.
    */
   IMU(uint16_t imu_id);
@@ -56,7 +63,7 @@ public:
   /**
    * @brief Starts the IMU data stream.
    *
-   * This function initiates IMU data collection. The actual data retrieval mechanism depends on 
+   * This function initiates IMU data collection. The actual data retrieval mechanism depends on
    * the implementation (e.g., hardware polling, subscribing to simulation topics, event-driven updates).
    * The specific implementation is determined at compile time based on build configurations (e.g., `USE_SIM` flag).
    */
@@ -90,7 +97,7 @@ public:
 
   /**
    * @brief Gets the current IMU status.
-   * 
+   *
    * This function returns the current status of the IMU sensor, indicating the validity of the data.
    */
   virtual Status get_status() const;
@@ -139,11 +146,11 @@ public:
   virtual void set_status(Status new_status);
 
 private:
-  Status status; ///< Current status of the IMU sensor (e.g., UNINITIALIZED, VALID, INVALID).
-  uint16_t imu_id; ///< Unique identifier for the IMU sensor instance.
+  Status          status;              ///< Current status of the IMU sensor (e.g., UNINITIALIZED, VALID, INVALID).
+  uint16_t        imu_id;              ///< Unique identifier for the IMU sensor instance.
   msg::IMUDataMsg current_imu_data{0}; ///< Holds the most recent IMU data read from the sensor.
-  uint8_t recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
-  uint8_t recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
-  bool running = false;     ///< Flag indicating whether the IMU data stream is currently active.
-  bool initialized = false; ///< Flag indicating whether the IMU has been initialized and is ready to provide data.
+  uint8_t         recovery_pass_count; ///< Counter for recovery passes, used to track sensor recovery attempts.
+  uint8_t         recovery_fail_count; ///< Counter for recovery failures, used to track sensor failure attempts.
+  bool            running     = false; ///< Flag indicating whether the IMU data stream is currently active.
+  bool            initialized = false; ///< Flag indicating whether the IMU has been initialized and is ready to provide data.
 };

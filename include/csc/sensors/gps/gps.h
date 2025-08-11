@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "kfplusplus/include/linalg.h"
 #include "msg/gps_msg.h"
 #include <functional>
 
@@ -27,13 +28,21 @@
 class GPS
 {
 public:
+  inline static constexpr size_t GPS_MEASUREMENT_DIM = 3;   ///< Dimension of the GPS position measurement (3: x, y, z).
+  inline static const double     GPS_POS_STDDEV      = 1.5; ///< [m]
+  inline static const double     GPS_VEL_STDDEV      = 0.5; ///< [m/s]
 
+  // --- Measurement Noise Covariance Matrices (R) ---
+  inline static const linalg::Matrix<GPS_MEASUREMENT_DIM, GPS_MEASUREMENT_DIM> R_gps_pos =
+      linalg::Matrix<GPS_MEASUREMENT_DIM, GPS_MEASUREMENT_DIM>::identity() * (GPS_POS_STDDEV * GPS_POS_STDDEV); // Variance
+  inline static const linalg::Matrix<GPS_MEASUREMENT_DIM, GPS_MEASUREMENT_DIM> R_gps_vel =
+      linalg::Matrix<GPS_MEASUREMENT_DIM, GPS_MEASUREMENT_DIM>::identity() * (GPS_VEL_STDDEV * GPS_VEL_STDDEV); // Variance
   /**
    * @brief Constructs an GPS interface.
    *
    * Since this is an abstract interface, the constructor does not initialize any hardware or
    * simulation. The actual initialization behavior depends on the compiled implementation.
-   * 
+   *
    */
   GPS();
 
@@ -62,5 +71,5 @@ public:
   void stop();
 
 private:
-  bool running = false;     ///< Indicates if the GPS data stream is currently running.
+  bool running = false; ///< Indicates if the GPS data stream is currently running.
 };

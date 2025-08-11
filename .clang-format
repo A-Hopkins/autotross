@@ -3,7 +3,7 @@ IndentWidth: 2
 TabWidth: 2
 UseTab: Never
 AllowShortFunctionsOnASingleLine: Inline
-ColumnLimit: 100
+ColumnLimit: 140
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
 SortIncludes: true

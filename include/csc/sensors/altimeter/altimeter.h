@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "kfplusplus/include/linalg.h"
 #include "msg/altimeter_msg.h"
 #include <functional>
 
@@ -27,7 +28,12 @@
 class Altimeter
 {
 public:
+  inline static constexpr size_t ALTIMETER_MEASUREMENT_DIM = 2;   ///< Dim of the altimeter measurement (2: altitude, vertical velocity).
+  inline static const double     ALTIMETER_STDDEV          = 0.5; ///< [m]
 
+  // --- Measurement Noise Covariance Matrices (R) ---
+  inline static const linalg::Matrix<ALTIMETER_MEASUREMENT_DIM, ALTIMETER_MEASUREMENT_DIM> R_altimeter =
+      linalg::Matrix<ALTIMETER_MEASUREMENT_DIM, ALTIMETER_MEASUREMENT_DIM>::identity() * (ALTIMETER_STDDEV * ALTIMETER_STDDEV); // Variance
   /**
    * @brief Constructs an Altimeter interface.
    *
